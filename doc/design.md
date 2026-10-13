@@ -273,7 +273,10 @@ over: MIT OR Apache-2.0 for code, CC0 for witnesses.
 3. Whether `psg search` should accept a time budget and resume from a
    checkpoint for both engines.
 4. Lean phase B: worth attempting?
-5. The provenance of the 1 955 `k = 5` island cycles (computed in August 2026,
-   engine not recorded): rebuild them with a recorded engine before
-   publishing, or publish them as they are with that caveat.
+5. ~~The provenance of the 1 955 `k = 5` island cycles~~ **decided:** they are
+   recomputed with LKH by a sweep that records full provenance per `n`
+   (`scripts/witness-sweep.py` in the lab notebook, commit `d23c0ab`, to
+   become a `psg` command). The new cycles become the island's reference
+   witnesses; the August cycles are kept as additional witnesses, flagged as
+   having no recorded provenance.
 6. CI cost of Lean, and of verifying the larger witnesses.
