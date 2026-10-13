@@ -59,7 +59,7 @@ power-sum-graphs/
 ├── verify/           outside the workspace, independent of everything above
 │   ├── rust/         no dependency at all
 │   └── python/       standard library only
-├── lean/             Lean 4 project, pinned Mathlib
+├── lean/             after 1.0: Lean 4 project, pinned Mathlib (section 7)
 ├── witness/
 │   ├── plain/        bundles with the plain cycle list
 │   └── bases/        the same bundles with the bases encoding
@@ -351,23 +351,45 @@ bandwidth, is too small for these files and their downloads.
 
 ---
 
-## 7. Lean (proposal)
+## 7. Lean (decided: after 1.0)
 
-Lean helps most where there is reasoning, least where there is only data:
+Lean is not needed to publish: every claim already rests on certificates that
+two independent programs check. Where the mathematics is elementary, Lean would
+only move a computation from those programs to its kernel:
 
-- **Phase A:** define `G_k(n)` and degree; prove that a vertex of degree at
-  most one rules out a Hamiltonian cycle, and that degree is monotone in `n`;
-  check the bands for `k = 3..7`; the certificate for `G_2(31)`; the cycles of
-  32 and 473 vertices. Outcome: the lower bounds for `k = 3..7` formally
-  verified, and `a(2) = 32`, `a(3) = 473` entirely.
-- **Phase B, optional:** existence at `k = 4` if the kernel can take 9641
-  vertices.
-- **Phase C, later:** exact statements of the islands theory.
+- that a Hamiltonian cycle gives every vertex degree at least two — its edges
+  are edges of the graph, and each vertex has a predecessor and a successor,
+  distinct for `n >= 3` — is a connecting lemma, absent from Mathlib, not a
+  result;
+- that degrees never decrease as `n` grows — `G_k(n)` is an induced subgraph
+  of `G_k(n+1)` — is all the bands certificate uses; checking the 8 to 18
+  bands of a given `k` is a finite computation the verifiers already do;
+- existence is data, checked by the verifiers; a formal existence proof would
+  add display, not trust.
 
-Existence for `k = 5, 6` stays with the two verifiers: the cycles are too large
-for the kernel, and `native_decide` would weaken the guarantee being sought.
-Mathlib's current graph API has not been checked yet. Building Mathlib in CI
-needs its cache or a separate workflow.
+Lean is kept for the two places where it would add real assurance, as a
+separate project after 1.0 (decided):
+
+1. **`G_2(31)` is not Hamiltonian**: the only non-Hamiltonicity argument that
+   does not reduce to degree — finite but intricate, propagation then two
+   branches each closing on two cycles, the kind of reasoning where a mistake
+   goes unnoticed.
+2. **The islands theory**: the characterisation of `I_k`, the nesting of the
+   obstructions, the termination bound `a*`. It is the only general,
+   non-trivial reasoning behind the results, so far checked only by
+   computations agreeing up to `k = 12`. Once proved, the lower bound follows
+   for every `k` from a theorem instead of a certificate per `k`, and the
+   degree lemmas come with it. It is the harder of the two.
+
+Dropped: formal existence proofs, at any size.
+
+Statements would use Mathlib's vocabulary (`SimpleGraph.IsHamiltonian`,
+`Walk.IsHamiltonianCycle`), so a reader need not trust our definition of a
+Hamiltonian cycle; computations would go through Boolean checkers with
+soundness lemmas, evaluated by the kernel. Lean and Mathlib pinned, in a
+separate CI workflow using Mathlib's cache. Lean is not installed on the
+development machine yet. A successful formalisation of the islands theory could
+strengthen the results paper, or become a short paper of its own.
 
 ---
 
@@ -407,11 +429,13 @@ over: MIT OR Apache-2.0 for code, CC0 for witnesses.
    directories, wall-clock `--time-limit`, exit codes 0 / 2 / 1, `--resume`,
    per-segment provenance and seeds, a memory guard that `--force` overrides,
    the hybrid engine after 1.0.
-4. Lean phase B: worth attempting?
+4. ~~Lean~~ **decided** (section 7): after 1.0, limited to `G_2(31)` and the
+   islands theory; no formal existence proofs.
 5. ~~The provenance of the 1 955 `k = 5` island cycles~~ **decided:** they are
    recomputed with LKH by a sweep that records full provenance per `n`
    (`scripts/witness-sweep.py` in the lab notebook, commit `d23c0ab`, to
    become a `psg` command). The new cycles become the island's reference
    witnesses; the August cycles are kept as additional witnesses, flagged as
    having no recorded provenance.
-6. CI cost of Lean, and of verifying the larger witnesses.
+6. CI cost of verifying the larger witnesses (Lean's own CI is separate, after
+   1.0).
