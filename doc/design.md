@@ -212,12 +212,36 @@ SHA-256 matches the manifest; checks `bands.txt` band by band. The gate also
 checks that the two trees agree: same manifests, bases decoding to the plain
 lists, identical `bands.txt`.
 
-### 6.5 Hosting (decided, threshold open)
+### 6.5 Hosting (decided)
 
-Witnesses live on Zenodo, which has a DOI and no 100 MB file limit (a `k = 7`
-plain witness would be about 920 MB). The repository keeps every manifest,
-every `bands.txt`, and the bundles small enough for Git. **Open:** where the
-line is. A `k = 6` plain witness is 25 MB, and there are four.
+**Git is the home of the witnesses.** Measured on the cycles collected so far,
+plain xz against the estimated bases size:
+
+| group | cycles | plain, xz | bases, estimated |
+|---|---|---|---|
+| `k = 3`, `n = 473..800` | 328 | 0.4 MB | negligible |
+| `k = 4` finite island | 359 | 4.5 MB | about 0.2 MB |
+| `k = 5` finite island | 1 959, twice that after the provenance sweep | 531 MB, about 1 GB after | 15 to 30 MB |
+| `k = 5`, other `n` | 5 | 7.4 MB | about 0.3 MB |
+| `k = 6` | 4 | about 100 MB | about 6 MB |
+
+- The whole `witness/bases/` tree is in Git: about 50 MB in all.
+- `witness/plain/` is in Git for everything except **two groups**: the `k = 5`
+  finite island and `k = 6`. In Git they would weigh on every clone forever,
+  since history keeps them.
+- Those two groups are attached as **assets of the GitHub release** (up to
+  2 GB per file, outside Git history, tied to the tag), and the same files go
+  into the **Zenodo deposit** of that release, which gives the DOI the OEIS
+  and the papers need.
+- In the manifest, an offloaded file has a `url` next to its `sha256`;
+  `psg bundle` downloads and checks it. Integrity never depends on the host.
+
+**Rejected: Google Drive.** Considered for the large files and dropped: no DOI,
+tied to a personal account, links that break when a file moves, download quotas
+on popular large files, and no link to a repository version.
+
+**Rejected: Git LFS.** GitHub's free quota, 1 GB of storage and of monthly
+bandwidth, is too small for these files and their downloads.
 
 ---
 
@@ -267,7 +291,9 @@ over: MIT OR Apache-2.0 for code, CC0 for witnesses.
 
 ## 10. Open questions
 
-1. The Git / Zenodo threshold for witnesses (section 6.5).
+1. ~~The Git / Zenodo threshold~~ **decided** (section 6.5): Git for all but
+   the plain `k = 5` island and `k = 6`, which go to release assets and Zenodo;
+   no Google Drive.
 2. The manifest fields, and whether to keep run-level provenance beyond
    engine, date and duration.
 3. Whether `psg search` should accept a time budget and resume from a
