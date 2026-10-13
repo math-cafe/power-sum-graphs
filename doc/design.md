@@ -62,11 +62,11 @@ power-sum-graphs/
 ├── CITATION.cff, CHANGELOG.md, LICENSE-MIT, LICENSE-APACHE
 ├── Cargo.toml, rust-toolchain.toml
 ├── crates/
-│   ├── posum-core/     G_k(n) by formula, islands in O(k), bands certificate,
+│   ├── posum-core/   G_k(n) by formula, islands in O(k), bands certificate,
 │   │                 canonical order, bases encoding; no heavy dependency
-│   ├── posum-search/   preflight and propagation, chain contraction,
+│   ├── posum-search/ preflight and propagation, chain contraction,
 │   │                 SAT + repair engine (CaDiCaL), checkpoints
-│   ├── posum-lkh/      TSPLIB export (contracted), tour import, LKH driver
+│   ├── posum-lkh/    TSPLIB export (contracted), tour import, LKH driver
 │   └── posum-cli/    the single binary, `posum`
 ├── verify/           outside the workspace, independent of everything above
 │   ├── rust/         no dependency at all
