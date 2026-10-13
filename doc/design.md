@@ -1,4 +1,4 @@
-# power-sum-graphs (PΣG) 1.0 — design note
+# power-sum-graphs 1.0 — design note
 
 Status: draft, to be discussed before any code is written. Decisions taken so
 far are marked **decided**; the rest are proposals or open questions.
@@ -18,8 +18,20 @@ exploration that led to it — failed optimisations, benchmarks, research notes,
 experiments — lives in the lab notebook, the earlier repository
 `math-cafe/powercycle`, which stays public and is cited for provenance.
 
-**Name (decided):** `power-sum-graphs`, abbreviated PΣG in typeset text and
-`psg` in every technical identifier: binary, crates, commands, file names.
+**Names (decided):**
+
+- the repository is `power-sum-graphs`: explicit, and free on GitHub, crates.io
+  and PyPI;
+- the software is **posum**, after the Latin *possum*, "I can": the binary
+  `posum`, the crates `posum-core`, `posum-search`, `posum-lkh` and
+  `posum-cli`, the last producing the binary. All were free on crates.io and
+  PyPI on 13 October 2026; `posum` alone is taken on crates.io, which is why the
+  binary's crate is `posum-cli`;
+- in papers the object is a *power-sum graph*; "posum" names the software.
+
+Rejected: `psg`, taken on crates.io and PyPI, shared with thousands of
+repositories and with a common shell alias for `ps aux | grep`, and PΣG with it;
+`possum`, taken on crates.io and PyPI, as is `possum-core`.
 
 ---
 
@@ -50,12 +62,12 @@ power-sum-graphs/
 ├── CITATION.cff, CHANGELOG.md, LICENSE-MIT, LICENSE-APACHE
 ├── Cargo.toml, rust-toolchain.toml
 ├── crates/
-│   ├── psg-core/     G_k(n) by formula, islands in O(k), bands certificate,
+│   ├── posum-core/     G_k(n) by formula, islands in O(k), bands certificate,
 │   │                 canonical order, bases encoding; no heavy dependency
-│   ├── psg-search/   preflight and propagation, chain contraction,
+│   ├── posum-search/   preflight and propagation, chain contraction,
 │   │                 SAT + repair engine (CaDiCaL), checkpoints
-│   ├── psg-lkh/      TSPLIB export (contracted), tour import, LKH driver
-│   └── psg/          the single binary
+│   ├── posum-lkh/      TSPLIB export (contracted), tour import, LKH driver
+│   └── posum-cli/    the single binary, `posum`
 ├── verify/           outside the workspace, independent of everything above
 │   ├── rust/         no dependency at all
 │   └── python/       standard library only
@@ -91,15 +103,15 @@ experiments, the build benchmarks, the research notes.
 ## 4. Commands (proposal)
 
 ```console
-psg islands <k>                         admissible islands of G_k
-psg bands <k> <n>                       lower-bound certificate for n
-psg search <k> <n> [--engine lkh|sat]   find a Hamiltonian cycle
-           [--time-limit T] [--run-dir D] [--force]
-psg search --resume <D> [--time-limit T] [--force]
-psg encode <k> <n> cycle.txt            plain list -> bases
-psg decode <k> <n> cycle.bases          bases -> plain list
-psg bundle <k> <n> ...                  build or verify a bundle
-psg check                               the whole pre-publication gate
+posum islands <k>                         admissible islands of G_k
+posum bands <k> <n>                       lower-bound certificate for n
+posum search <k> <n> [--engine lkh|sat]   find a Hamiltonian cycle
+             [--time-limit T] [--run-dir D] [--force]
+posum search --resume <D> [--time-limit T] [--force]
+posum encode <k> <n> cycle.txt            plain list -> bases
+posum decode <k> <n> cycle.bases          bases -> plain list
+posum bundle <k> <n> ...                  build or verify a bundle
+posum check                               the whole pre-publication gate
 ```
 
 `bands` computes the certificate from the chain of blocking vertices, in
@@ -161,7 +173,7 @@ improvement.
 
 ### 5.2 Memory guard (decided)
 
-Before starting, `psg search` estimates the memory it needs: the graph, plus
+Before starting, `posum search` estimates the memory it needs: the graph, plus
 about 600 bytes per vertex for LKH, or per node once chains are contracted. It
 refuses to start when the estimate exceeds the available memory, and warns
 above half of it. This is the guard the lab notebook recorded as missing since
@@ -239,7 +251,7 @@ and each bundle stays self-contained: it holds its own encoding and the
 manifest says where the other one is.
 
 ```toml
-format = "psg-bundle 1"
+format = "posum-bundle 1"
 k = 6
 n = 15748961
 claims = ["hamiltonian", "minimal"]   # "minimal" requires [bands]
@@ -298,13 +310,13 @@ Rules (decided):
   value and describes the author's environment.
 - **No verification results.** The manifest says what to check — `k`, `n`,
   each SHA-256 — never that it was checked. Verification is a process that
-  `psg check` repeats; a recorded "valid" proves nothing.
+  `posum check` repeats; a recorded "valid" proves nothing.
 - **Engine parameters by reference.** A parameter file is stored once, under
   `witness/engines/`, and each witness points to it with its SHA-256, rather
   than repeating it thousands of times across the `k = 5` island.
 - **The independent verifiers do not read manifests.** They stay free of any
   TOML parsing — the Rust one has no dependency at all — and take `k`, `n` and
-  a file. `psg check` reads the manifest, calls both verifiers and compares the
+  a file. `posum check` reads the manifest, calls both verifiers and compares the
   SHA-256 itself.
 - **The reference witness** is the one cited in papers: the first published
   where one exists, otherwise a witness with recorded provenance.
@@ -340,7 +352,7 @@ plain xz against the estimated bases size:
   into the **Zenodo deposit** of that release, which gives the DOI the OEIS
   and the papers need.
 - In the manifest, an offloaded file has a `url` next to its `sha256`;
-  `psg bundle` downloads and checks it. Integrity never depends on the host.
+  `posum bundle` downloads and checks it. Integrity never depends on the host.
 
 **Rejected: Google Drive.** Considered for the large files and dropped: no DOI,
 tied to a personal account, links that break when a file moves, download quotas
@@ -434,7 +446,7 @@ over: MIT OR Apache-2.0 for code, CC0 for witnesses.
 5. ~~The provenance of the 1 955 `k = 5` island cycles~~ **decided:** they are
    recomputed with LKH by a sweep that records full provenance per `n`
    (`scripts/witness-sweep.py` in the lab notebook, commit `d23c0ab`, to
-   become a `psg` command). The new cycles become the island's reference
+   become a `posum` command). The new cycles become the island's reference
    witnesses; the August cycles are kept as additional witnesses, flagged as
    having no recorded provenance.
 6. CI cost of verifying the larger witnesses (Lean's own CI is separate, after
