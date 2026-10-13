@@ -94,6 +94,8 @@ experiments, the build benchmarks, the research notes.
 psg islands <k>                         admissible islands of G_k
 psg bands <k> <n>                       lower-bound certificate for n
 psg search <k> <n> [--engine lkh|sat]   find a Hamiltonian cycle
+           [--time-limit T] [--run-dir D] [--force]
+psg search --resume <D> [--time-limit T] [--force]
 psg encode <k> <n> cycle.txt            plain list -> bases
 psg decode <k> <n> cycle.bases          bases -> plain list
 psg bundle <k> <n> ...                  build or verify a bundle
@@ -130,6 +132,54 @@ Parameters that matter, from the measurements: `SUBGRADIENT = NO` (the default
 ascent is useless for 0/1 instances and very slow), `OPTIMUM = 0`,
 `STOP_AT_OPTIMUM = YES`, `OUTPUT_TOUR_FILE` so a stopped run keeps its best
 tour, and chain contraction, which cuts LKH's memory by 42 % at `k = 6`.
+
+### 5.1 Time budget and resumption (decided)
+
+The two engines resume differently. The SAT + repair engine already writes
+checkpoints and resumes its repair from a dump. LKH cannot resume inside a run,
+but it can start from a tour (`INITIAL_TOUR_FILE`) and writes its best tour at
+every improvement (`OUTPUT_TOUR_FILE`). For LKH, resuming means restarting from
+the best tour so far: its internal state is lost, the tour's quality is kept. A
+reboot during a search of several days costs at most the work since the last
+improvement.
+
+- **One run directory per search** holds its whole state: the problem files
+  (`.hcp`, `.chains`), the best tour and its cost or the last SAT checkpoint, a
+  log, and the provenance so far.
+- **`--time-limit`** is wall-clock time over the whole search. When it runs
+  out, the search stops cleanly and keeps its best state.
+- **Exit codes:** `0` a cycle found and verified; `2` time ran out, the search
+  can be resumed; `1` an error.
+- **`--resume <dir>`** restarts from the run directory: LKH from its best tour,
+  the SAT engine from its last checkpoint.
+- **The provenance records every segment**: start, end, duration, seed, and
+  the SHA-256 of the tour it started from. A cycle found over three segments
+  says so; an interrupted search is reproducible only by replaying the same
+  segments, and the provenance states it.
+- **A new seed per segment**: the initial seed plus the segment number, so that
+  a resumed LKH does not walk the same path again.
+
+### 5.2 Memory guard (decided)
+
+Before starting, `psg search` estimates the memory it needs: the graph, plus
+about 600 bytes per vertex for LKH, or per node once chains are contracted. It
+refuses to start when the estimate exceeds the available memory, and warns
+above half of it. This is the guard the lab notebook recorded as missing since
+August; at `k = 7` it avoids finding out after six hours that the machine is
+swapping.
+
+**`--force` overrides the refusal (decided).** The estimate is arithmetic, not
+a measurement — the `k = 7` preflight was measured at about 1.6 to 1.8 times
+the graph estimate — and the user may know better: a machine with large swap,
+an estimate known to be pessimistic, a deliberate test. With `--force` the
+search starts anyway, the warning is still printed, and the provenance records
+that the guard was overridden.
+
+### 5.3 Later: a hybrid engine
+
+If LKH stops at a low cost — three defects, as in the first trial on `G_6` —
+its paths could be handed to the alternating repair. Not in 1.0 (decided); the
+run directory format should allow it.
 
 ---
 
@@ -353,8 +403,10 @@ over: MIT OR Apache-2.0 for code, CC0 for witnesses.
 2. ~~The manifest fields~~ **decided** (section 6.3): one manifest per
    `(k, n)`, identical in both trees; processor and system but no host name;
    no verification results; engine parameters by reference.
-3. Whether `psg search` should accept a time budget and resume from a
-   checkpoint for both engines.
+3. ~~Time budget and resumption~~ **decided** (sections 5.1 to 5.3): run
+   directories, wall-clock `--time-limit`, exit codes 0 / 2 / 1, `--resume`,
+   per-segment provenance and seeds, a memory guard that `--force` overrides,
+   the hybrid engine after 1.0.
 4. Lean phase B: worth attempting?
 5. ~~The provenance of the 1 955 `k = 5` island cycles~~ **decided:** they are
    recomputed with LKH by a sweep that records full provenance per `n`
