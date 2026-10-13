@@ -181,27 +181,83 @@ A pure binary encoding was measured at only 7 % smaller and rejected.
 The degree of a vertex never decreases as `n` grows, so each band is checked at
 its two ends.
 
-### 6.3 Manifest (proposal)
+### 6.3 Manifest (decided)
+
+**One manifest per `(k, n)`, byte-identical in both trees.** Each witness lists
+both encodings, so the gate checks that the trees agree by comparing two files,
+and each bundle stays self-contained: it holds its own encoding and the
+manifest says where the other one is.
 
 ```toml
 format = "psg-bundle 1"
 k = 6
 n = 15748961
-claims = ["hamiltonian", "minimal"]       # "minimal" requires bands.txt
-encoding = "plain"                         # or "bases"
-reference = "5f2b4192..."                  # full SHA-256
+claims = ["hamiltonian", "minimal"]   # "minimal" requires [bands]
+reference = "5f2b4192388caf36..."     # full SHA-256 of the cited witness
 
 [bands]
-sha256 = "015b5be7..."
+file = "bands.txt"
+sha256 = "015b5be7015d2f6d..."
+count = 16                            # bands covering 1..n-1
 
 [[witness]]
-sha256 = "5f2b4192..."                     # of the canonical plain list
-file = "5f2b4192/cycle.txt.xz"
-engine = "sat-repair"                      # or "lkh-3.0.14-three-level-contracted", ...
+id = "5f2b4192388caf36..."            # SHA-256 of the canonical plain list
+plain = { file = "5f2b4192/cycle.txt.xz", url = "https://github.com/.../k6-plain.tar" }
+bases = { file = "5f2b4192/cycle.bases.xz" }
 found = "2026-08-23"
-seconds = 99900
-provenance = "powercycle 0.1.0, witness k6-n15748961"
+engine = "sat-repair"
+provenance = "powercycle 0.1.0, pc-search --max-depth=9, about 27 h 45"
+
+[[witness]]
+id = "6c575cc2..."
+plain = { file = "6c575cc2/cycle.txt.xz", url = "https://github.com/.../k6-plain.tar" }
+bases = { file = "6c575cc2/cycle.bases.xz" }
+found = "2026-10-11"
+engine = "lkh"
+cpu = "AMD Ryzen 9 7940HS"
+system = "Linux 7.2.9"
+
+  [witness.lkh]
+  version = "3.0.14"
+  binary_sha256 = "bb05ca46843ccdbb..."
+  tree = "three-level"
+  contracted = true
+  seed = 1
+  seconds = 351
+  trials = 1
+  parameters = "witness/engines/lkh-3.0.14-default.par"
+  parameters_sha256 = "..."
 ```
+
+A non-minimal value has `claims = ["hamiltonian"]` and no `[bands]`. A witness
+whose provenance was not recorded, such as the August `k = 5` island cycles,
+says so in plain words:
+
+```toml
+[[witness]]
+id = "..."
+found = "2026-08"
+engine = "unknown"
+provenance = "archive H5_246877-248831.tar, 21 August 2026; engine and parameters not recorded"
+```
+
+Rules (decided):
+
+- **Machine.** Only the processor and the operating system are published, as
+  context for the running time. The host name is not: it has no scientific
+  value and describes the author's environment.
+- **No verification results.** The manifest says what to check — `k`, `n`,
+  each SHA-256 — never that it was checked. Verification is a process that
+  `psg check` repeats; a recorded "valid" proves nothing.
+- **Engine parameters by reference.** A parameter file is stored once, under
+  `witness/engines/`, and each witness points to it with its SHA-256, rather
+  than repeating it thousands of times across the `k = 5` island.
+- **The independent verifiers do not read manifests.** They stay free of any
+  TOML parsing — the Rust one has no dependency at all — and take `k`, `n` and
+  a file. `psg check` reads the manifest, calls both verifiers and compares the
+  SHA-256 itself.
+- **The reference witness** is the one cited in papers: the first published
+  where one exists, otherwise a witness with recorded provenance.
 
 ### 6.4 Verification (decided)
 
@@ -294,8 +350,9 @@ over: MIT OR Apache-2.0 for code, CC0 for witnesses.
 1. ~~The Git / Zenodo threshold~~ **decided** (section 6.5): Git for all but
    the plain `k = 5` island and `k = 6`, which go to release assets and Zenodo;
    no Google Drive.
-2. The manifest fields, and whether to keep run-level provenance beyond
-   engine, date and duration.
+2. ~~The manifest fields~~ **decided** (section 6.3): one manifest per
+   `(k, n)`, identical in both trees; processor and system but no host name;
+   no verification results; engine parameters by reference.
 3. Whether `psg search` should accept a time budget and resume from a
    checkpoint for both engines.
 4. Lean phase B: worth attempting?
