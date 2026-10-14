@@ -1,0 +1,8 @@
+1 - 6 vertex=1 degree=0
+7 - 25 vertex=1 degree=1
+26 - 59 vertex=4 degree=1
+60 - 97 vertex=27 degree=1
+98 - 183 vertex=32 degree=1
+184 - 234 vertex=108 degree=1
+235 - 295 vertex=216 degree=1
+296 - 472 vertex=256 degree=1

@@ -421,8 +421,15 @@ with `kind` among `plain`, `bases`, `bands`, `manifest`, and `verdict` either
 | `out.bases` | bases | 2 | 32 | invalid | decodes outside `1..n` |
 | `gap-bands.txt` | bands | 4 | 9641 | invalid | a missing value |
 | `long-bands.txt` | bands | 4 | 9641 | invalid | a band past its vertex's degree |
-| `dash-bands.txt` | bands | 4 | 9641 | invalid | a single value written `m - m` |
+| `dash-bands.txt` | bands | 4 | 9641 | invalid | a dash without its spaces |
+| `canon.toml` | manifest | 6 | 15748961 | valid | a canonical manifest |
 | `noncanon.toml` | manifest | 6 | 15748961 | invalid | keys out of order |
+
+Each invalid vector carries one defect only, except that a repeated vertex
+necessarily leaves another one missing. A single value written `m - m` cannot
+be the only defect of a vector — no natural single-value band occurs for
+`k = 2..5`, and splitting a band would break the merging rule as well — so that
+rule is left to the verifiers' unit tests.
 
 ---
 

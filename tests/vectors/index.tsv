@@ -1,0 +1,21 @@
+# file	kind	k	n	verdict	reason
+g2-32.txt	plain	2	32	valid	the unique cycle
+g2-32.bases	bases	2	32	valid	the same cycle
+g3-473-bands.txt	bands	3	473	valid	the lower bound
+g4-9641-bands.txt	bands	4	9641	valid	the lower bound
+dup.txt	plain	2	32	invalid	a vertex repeated
+short.txt	plain	2	32	invalid	31 lines
+nonedge.txt	plain	2	32	invalid	two neighbours not summing to a square
+open.txt	plain	2	32	invalid	last and first not summing to a square
+rotated.txt	plain	2	32	invalid	valid cycle, not starting at 1
+reversed.txt	plain	2	32	invalid	valid cycle, second line larger than the last
+crlf.txt	plain	2	32	invalid	carriage returns
+nofinal.txt	plain	2	32	invalid	no final line feed
+leading0.txt	plain	2	32	invalid	an integer with a leading zero
+open.bases	bases	2	32	invalid	does not close
+out.bases	bases	2	32	invalid	decodes outside 1..n
+gap-bands.txt	bands	4	9641	invalid	a missing value
+long-bands.txt	bands	4	9641	invalid	a band past its vertex's degree
+dash-bands.txt	bands	4	9641	invalid	a dash without its spaces
+canon.toml	manifest	6	15748961	valid	canonical manifest
+noncanon.toml	manifest	6	15748961	invalid	keys out of order
