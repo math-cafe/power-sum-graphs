@@ -63,10 +63,10 @@ power-sum-graphs/
 ├── Cargo.toml, rust-toolchain.toml
 ├── crates/
 │   ├── posum-core/   G_k(n) by formula, islands in O(k), bands certificate,
-│   │                 canonical order, bases encoding; no heavy dependency
-│   ├── posum-search/ preflight and propagation, chain contraction,
-│   │                 SAT + repair engine (CaDiCaL), checkpoints
-│   ├── posum-lkh/    TSPLIB export (contracted), tour import, LKH driver
+│   │                 canonical order, bases encoding, degree-two propagation,
+│   │                 chain contraction; no heavy dependency
+│   ├── posum-lkh/    TSPLIB export and tour import, LKH runs as a separate
+│   │                 process, run directories, resumption
 │   └── posum-cli/    the single binary, `posum`
 ├── verify/           outside the workspace, independent of everything above
 │   ├── rust/         no dependency at all
@@ -110,7 +110,7 @@ experiments, the build benchmarks, the research notes.
 ```console
 posum islands <k>                         admissible islands of G_k
 posum bands <k> <n>                       lower-bound certificate for n
-posum search <k> <n> [--engine lkh|sat]   find a Hamiltonian cycle
+posum search <k> <n>                      find a Hamiltonian cycle with LKH
              [--time-limit T] [--run-dir D] [--force]
 posum search --resume <D> [--time-limit T] [--force]
 posum encode <k> <n> cycle.txt            plain list -> bases
@@ -126,20 +126,42 @@ posum check                               the whole pre-publication gate
 
 ## 5. Search engines
 
-**Decided:** LKH-3 is the main engine, the SAT + repair engine the
-self-contained fallback. Measured in the lab notebook, one run each:
-`G_6(15748961)` in 12 min with the three-level LKH build against about 28 h
-for SAT + repair.
+**Decided: LKH-3 is the only engine.** Measured in the lab notebook, one run
+each: `G_6(15748961)` in 12 min with the three-level LKH build against about
+28 h for SAT + repair. No published claim depends on how a witness was found —
+the verifiers check every witness whatever produced it — so the search engine
+serves finding, never proving. The SAT + repair engine, about 10 000 of the lab
+notebook's 15 000 lines, stays there, frozen with its measurements; the
+computational paper and the provenance of the witnesses it found refer to it.
+
+Consequences, decided:
+
+- **Searching requires LKH; verifying never does.** The README says so plainly,
+  with LKH's licence.
+- **The interface stays engine-agnostic:** `posum` writes a standard TSPLIB HCP
+  problem with fixed edges and reads a standard TSPLIB tour, so any solver
+  speaking TSPLIB can replace LKH.
+- **LKH runs as a separate process**, never linked into `posum`: it keeps its
+  state in global variables and calls `exit()` on errors, which would end the
+  whole program. A separate process also lets the memory be measured and ties
+  each provenance to the SHA-256 of one binary. The `lkh-rs` crate (0.1.0, July
+  2026) was looked at and rejected: it links LKH in-process, builds the
+  two-level tree, and bundles LKH's full source in a crate labelled MIT on
+  crates.io, which a dependency would pull on every build — redistributing LKH
+  indirectly, exactly what this repository does not do.
 
 LKH-3 is distributed "for academic and non-commercial use; the author reserves
 all rights". Our use is academic and non-commercial; redistribution is not
 granted. Therefore (decided):
 
 - the repository never contains LKH;
-- `scripts/build-lkh.sh` downloads LKH-3.0.14 from the author's page, checks
-  the archive's SHA-256
-  (`a9a79b5b8632a843d42ed93ab77fa10c5237aca16d5c1bf31287e214e931f3ca`),
-  sets `TREE_TYPE = THREE_LEVEL_TREE` and builds it;
+- `scripts/build-lkh.sh` (written, commit `4625ef5`) downloads LKH-3.0.14 from
+  the author's page, checks the archive's SHA-256
+  (`a9a79b5b8632a843d42ed93ab77fa10c5237aca16d5c1bf31287e214e931f3ca`), sets
+  `TREE_TYPE = THREE_LEVEL_TREE`, keeps LKH's own compiler flags (LTO, PGO and
+  clang measured within noise), maps the build directory to a fixed name so
+  that two builds on one machine are byte-identical, smoke-tests the binary on
+  `G_2(32)` and installs it;
 - LKH, its version and its licence are stated in the README, the papers and
   every manifest whose witness it found;
 - a permission request to include the unmodified archive in the Zenodo deposit
@@ -152,8 +174,7 @@ tour, and chain contraction, which cuts LKH's memory by 42 % at `k = 6`.
 
 ### 5.1 Time budget and resumption (decided)
 
-The two engines resume differently. The SAT + repair engine already writes
-checkpoints and resumes its repair from a dump. LKH cannot resume inside a run,
+LKH cannot resume inside a run,
 but it can start from a tour (`INITIAL_TOUR_FILE`) and writes its best tour at
 every improvement (`OUTPUT_TOUR_FILE`). For LKH, resuming means restarting from
 the best tour so far: its internal state is lost, the tour's quality is kept. A
@@ -167,8 +188,7 @@ improvement.
   out, the search stops cleanly and keeps its best state.
 - **Exit codes:** `0` a cycle found and verified; `2` time ran out, the search
   can be resumed; `1` an error.
-- **`--resume <dir>`** restarts from the run directory: LKH from its best tour,
-  the SAT engine from its last checkpoint.
+- **`--resume <dir>`** restarts LKH from the best tour in the run directory.
 - **The provenance records every segment**: start, end, duration, seed, and
   the SHA-256 of the tour it started from. A cycle found over three segments
   says so; an interrupted search is reproducible only by replaying the same
@@ -192,11 +212,11 @@ an estimate known to be pessimistic, a deliberate test. With `--force` the
 search starts anyway, the warning is still printed, and the provenance records
 that the guard was overridden.
 
-### 5.3 Later: a hybrid engine
+### 5.3 Not planned: a hybrid engine
 
 If LKH stops at a low cost — three defects, as in the first trial on `G_6` —
-its paths could be handed to the alternating repair. Not in 1.0 (decided); the
-run directory format should allow it.
+its paths could be handed to the alternating repair. It would need the repair
+engine, which stays in the lab notebook; not planned.
 
 ---
 
@@ -386,6 +406,26 @@ must agree on.
   `<sha8>.provenance.toml` for its provenance, the prefix taken from the
   SHA-256 of the canonical plain list. An island bundle has no `bands.txt`: it
   claims Hamiltonicity for every `n`, not minimality.
+
+### 6.3c Provenance of historical witnesses (decided)
+
+The five witnesses published by the lab notebook were found by its SAT + repair
+engine; their detailed provenance is in each `final.pcdump.json` (producer,
+session, the factors, every repair move) and in each bundle README (the chain
+of tours and moves, with timings). That file is not carried over. Each such
+witness gets a `<sha8>.provenance.toml` with:
+
+1. the engine, `sat-repair`, and its producer, `pc-search 0.1.0`;
+2. a readable summary of the chain, taken from the README, with the timings
+   available;
+3. a verifiable pointer to the lab notebook: repository, tag
+   (`witness-k6-n15748961`, ...), path of the dump, SHA-256 of its decompressed
+   content, and its `dump_id`.
+
+**The lab notebook is archived on Software Heritage before 1.0 (decided)**, and
+the pointers give its SWHID, a permanent identifier that outlives GitHub. The
+SAT + repair engine and the detailed provenance stay reachable even if the
+repository is moved or deleted.
 
 ### 6.4 Verification (decided)
 
