@@ -1,0 +1,12 @@
+[package]
+name = "posum-verify"
+version = "1.0.0"
+edition = "2024"
+publish = false
+license = "MIT OR Apache-2.0"
+description = "Independent verifier for posum witnesses and certificates, with no dependency"
+
+# Deliberately no dependency at all, and outside the posum workspace.
+[dependencies]
+
+[workspace]
