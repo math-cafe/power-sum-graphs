@@ -19,9 +19,11 @@ These rules apply to every text format below unless a section says otherwise.
 - **Lines.** Every line, the last one included, MUST end with a single line
   feed (`0x0A`). Carriage returns MUST NOT appear. Empty lines MUST NOT appear
   unless a section allows them.
-- **Integers.** Decimal digits only: no sign, no leading zero (`0` itself is
-  never a valid value in these formats), no separator, no exponent. Integers
-  are unbounded; implementations MUST NOT overflow silently.
+- **Integers.** Decimal digits only: no sign, no leading zero, no separator, no
+  exponent. The integer `0` is written `0` and is allowed only where a format
+  says so (the degree of a band). Integers are unbounded; an implementation
+  that cannot represent a value MUST stop with an error, never overflow
+  silently.
 - **Whitespace.** Where a format separates fields, it uses exactly one space
   (`0x20`). No tab, no trailing space, no leading space.
 - **Hashes.** SHA-256, written as 64 lowercase hexadecimal digits. A `sha8` is
@@ -368,8 +370,11 @@ Each of the two verifiers takes `k`, `n` and one file, and decides:
 - a bases file: section 3;
 - a bands file: section 4.
 
-They print a verdict and exit with status 0 when the file is valid, 1 when it is
-not, 2 on a usage error. They read nothing else: no manifest, no provenance, no
+They are called as `<verifier> <plain|bases|bands> <k> <n> <file>` on an
+uncompressed file, print a verdict and exit with status 0 when the file is
+valid, 1 when it is not, 2 on a usage error or a value they cannot represent.
+They read the file as a stream, so their memory is one bit per vertex, not the
+file's size. They read nothing else: no manifest, no provenance, no
 network.
 
 ### 10.2 posum check

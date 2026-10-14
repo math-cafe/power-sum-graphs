@@ -71,6 +71,8 @@ power-sum-graphs/
 ├── verify/           outside the workspace, independent of everything above
 │   ├── rust/         no dependency at all
 │   └── python/       standard library only
+├── contrib/awk/      a twenty-line awk verifier for plain files (decided),
+│                     tested against the vectors, not an official verifier
 ├── lean/             after 1.0: Lean 4 project, pinned Mathlib (section 7)
 ├── witness/
 │   ├── plain/        bundles with the plain cycle list
