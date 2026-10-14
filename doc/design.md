@@ -237,8 +237,12 @@ witness/plain/k6-n15748961/          witness/bases/k6-n15748961/
 
 - One directory per `(k, n)`; the statement and the minimality certificate
   belong to `(k, n)`, not to a cycle.
-- **All witnesses are kept (decided)**, several per `(k, n)` when several were
-  found, and non-minimal `n` too (existence only, no `bands.txt`).
+- **Only witnesses produced by `posum` itself are published (decided
+  2026-10-14).** Several per `(k, n)` are allowed when `posum` finds several,
+  and non-minimal `n` too (existence only, no `bands.txt`). Everything found
+  before 1.0 — the lab notebook's published witnesses, the August island
+  cycles, the LKH experiments — stays in the lab notebook, valid and kept, and
+  is not carried over (section 6.3c).
 - Each witness directory is named by the first 8 hex digits of the SHA-256 of
   its canonical plain list, identical in both trees.
 - The manifest names one **reference witness**, the one cited in papers.
@@ -323,17 +327,9 @@ system = "Linux 7.2.9"
   parameters_sha256 = "..."
 ```
 
-A non-minimal value has `claims = ["hamiltonian"]` and no `[bands]`. A witness
-whose provenance was not recorded, such as the August `k = 5` island cycles,
-says so in plain words:
-
-```toml
-[[witness]]
-id = "..."
-found = "2026-08"
-engine = "unknown"
-provenance = "archive H5_246877-248831.tar, 21 August 2026; engine and parameters not recorded"
-```
+A non-minimal value has `claims = ["hamiltonian"]` and no `[bands]`. Since
+every published witness is produced by `posum` (section 6.3c), every witness
+has a full provenance: no case for unknown or historical provenance.
 
 Rules (decided):
 
@@ -350,8 +346,8 @@ Rules (decided):
   TOML parsing — the Rust one has no dependency at all — and take `k`, `n` and
   a file. `posum check` reads the manifest, calls both verifiers and compares the
   SHA-256 itself.
-- **The reference witness** is the one cited in papers: the first published
-  where one exists, otherwise a witness with recorded provenance.
+- **The reference witness** is the one cited in papers: the first witness
+  `posum` produced for that `(k, n)`.
 
 ### 6.3b Formats and names, refined (decided 2026-10-14)
 
@@ -407,25 +403,45 @@ must agree on.
   SHA-256 of the canonical plain list. An island bundle has no `bands.txt`: it
   claims Hamiltonicity for every `n`, not minimality.
 
-### 6.3c Provenance of historical witnesses (decided)
+### 6.3c Only witnesses produced by posum (decided 2026-10-14)
 
-The five witnesses published by the lab notebook were found by its SAT + repair
-engine; their detailed provenance is in each `final.pcdump.json` (producer,
-session, the factors, every repair move) and in each bundle README (the chain
-of tours and moves, with timings). That file is not carried over. Each such
-witness gets a `<sha8>.provenance.toml` with:
+Release 1.0 publishes only witnesses that `posum search` produced, each with
+the same engine, the same provenance and the same format. Nothing found before
+is carried over: the five witnesses the lab notebook published (found by its
+SAT + repair engine), the August `k = 5` island cycles (provenance not
+recorded), the LKH experiments and the provenance sweep of 14 October. They
+stay valid and kept in the lab notebook, which the README cites as earlier,
+independently verified witnesses.
 
-1. the engine, `sat-repair`, and its producer, `pc-search 0.1.0`;
-2. a readable summary of the chain, taken from the README, with the timings
-   available;
-3. a verifiable pointer to the lab notebook: repository, tag
-   (`witness-k6-n15748961`, ...), path of the dump, SHA-256 of its decompressed
-   content, and its `dump_id`.
+Regenerating every witness the claims need costs about 1 h 30 to 2 h on the
+development machine, measured with the three-level contracted LKH:
 
-**The lab notebook is archived on Software Heritage before 1.0 (decided)**, and
-the pointers give its SWHID, a permanent identifier that outlives GitHub. The
-SAT + repair engine and the detailed provenance stay reachable even if the
-repository is moved or deleted.
+| claim | values | time, 14 cores |
+|---|---|---|
+| `n_min(2) = 32`, reference | 1 | instant |
+| `n_min(3) = 473`, and every `n` up to 800 | 328 | seconds |
+| `n_min(4) = 9641`, and the whole finite island | 359 | about a minute |
+| `n_min(5) = 246877`, and the whole finite island | 1 955 | about 1 h 10 |
+| `n_min(6) = 15748961` | 1 | 6 to 12 min, 6 to 10 GB |
+| optional: `G_5(490463)`, `G_5(600000)`, `G_5(2000000)` | 3 | minutes |
+| bands, `k = 3..7` | — | instant |
+
+What this removes: the migration of about 2 300 collected cycles and six
+published bundles, the extraction of provenance from the `final.pcdump.json`
+files, and every special case for historical or unknown provenance in the
+manifest. What it costs: the reference witnesses change SHA-256 — nobody cites
+the old ones yet, and they stay published at the lab notebook's tags — and the
+plurality of methods behind the island evidence, which was supporting, never
+necessary: the proof rests on verification.
+
+**A free reproducibility check.** With the same export, seed and an LKH built by
+`scripts/build-lkh.sh`, `posum` is expected to reproduce the cycles of the
+14 October sweep exactly: the same seed has given the same cycle across two
+different builds. A difference would show that the rewrite changed something.
+
+**The lab notebook is still archived on Software Heritage before 1.0
+(decided)**, now as the permanent reference for the SAT + repair engine and the
+history the computational paper describes, rather than for witness provenance.
 
 ### 6.4 Verification (decided)
 
@@ -552,8 +568,7 @@ over: MIT OR Apache-2.0 for code, CC0 for witnesses.
 5. ~~The provenance of the 1 955 `k = 5` island cycles~~ **decided:** they are
    recomputed with LKH by a sweep that records full provenance per `n`
    (`scripts/witness-sweep.py` in the lab notebook, commit `d23c0ab`, to
-   become a `posum` command). The new cycles become the island's reference
-   witnesses; the August cycles are kept as additional witnesses, flagged as
-   having no recorded provenance.
+   become a `posum` command). Superseded by section 6.3c: release 1.0
+   regenerates every witness with `posum`, the island included.
 6. CI cost of verifying the larger witnesses (Lean's own CI is separate, after
    1.0).
