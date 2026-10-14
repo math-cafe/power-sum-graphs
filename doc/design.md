@@ -23,8 +23,8 @@ experiments — lives in the lab notebook, the earlier repository
 - the repository is `power-sum-graphs`: explicit, and free on GitHub, crates.io
   and PyPI;
 - the software is **posum**, after the Latin *possum*, "I can": the binary
-  `posum`, the crates `posum-core`, `posum-search`, `posum-lkh` and
-  `posum-cli`, the last producing the binary. All were free on crates.io and
+  `posum`, the crates `posum-core`, `posum-lkh` and `posum-cli`, the last
+  producing the binary. All were free on crates.io and
   PyPI on 13 October 2026; `posum` alone is taken on crates.io, which is why the
   binary's crate is `posum-cli`;
 - in papers the object is a *power-sum graph*; "posum" names the software.
