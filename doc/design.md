@@ -239,7 +239,45 @@ an estimate known to be pessimistic, a deliberate test. With `--force` the
 search starts anyway, the warning is still printed, and the provenance records
 that the guard was overridden.
 
-### 5.3 Not planned: a hybrid engine
+### 5.3 Sweeps (decided 2026-10-14)
+
+`posum sweep` runs `posum search` over a range of `n`, in parallel. It adds
+nothing to a search: one run directory per `n`, the same provenance, the same
+exit codes.
+
+```console
+posum sweep <k> <inf> <sup> [--jobs J] [--run-root D] [--time-limit T]
+            [--seed S] [--nice N] [--keep] [--force] [--lkh P]
+posum sweep <k> island [...]          every finite admissible island of G_k
+```
+
+- **A Rust command, not a script**: it reuses the search, the memory guard
+  and the provenance as they are, is tested with the rest, and needs neither
+  GNU parallel nor Python. The lab notebook's `witness-sweep.py` lived beside
+  its tools with a provenance of its own; that is what this avoids.
+- **Run directories** `D/k<k>-n<n>/`, `D = runs` by default, exactly those of
+  `posum search`. Running the same command again skips every `n` that has a
+  witness, resumes the interrupted ones and starts the rest.
+- **`--time-limit` is per `n`**: an `n` that runs out is left resumable and
+  does not hold the others back.
+- **Summary**: `D/sweep.tsv` (`n`, state, identity, seconds, trials), rewritten
+  as results come in, and one line per `n` on screen. Exit `0` when every `n`
+  has a witness, `2` when some are left to resume, `1` on an error.
+- **Jobs**: LKH uses one core, so `--jobs` defaults to the number of cores.
+  The memory guard judges `J` times the estimate for one `n` and lowers `J`
+  with a warning rather than refusing; `--force` keeps `J`.
+- **Priority**: LKH runs under `nice` 19 by default, `--nice 0` to disable,
+  so that the machine stays usable during an island.
+- **Disk**: after a success, the files that can be regenerated — the problem
+  and the tours — are deleted, about 2 MB per `n` at `k = 5`; the witness,
+  the provenance, `run.toml`, the parameters and the logs stay. `--keep`
+  keeps everything.
+- **Seed**: the same for every `n`, 1 by default, so that each `n` can be
+  reproduced alone.
+- **Bundles are a separate step**: `posum bundle add --island runs/k5-n*`
+  files the witnesses explicitly. A `--bundle` option may chain both later.
+
+### 5.4 Not planned: a hybrid engine
 
 If LKH stops at a low cost — three defects, as in the first trial on `G_6` —
 its paths could be handed to the alternating repair. It would need the repair
@@ -445,12 +483,19 @@ development machine, measured with the three-level contracted LKH:
 | claim | values | time, 14 cores |
 |---|---|---|
 | `n_min(2) = 32`, reference | 1 | instant |
-| `n_min(3) = 473`, and every `n` up to 800 | 328 | seconds |
+| `n_min(3) = 473` | 1 | instant |
 | `n_min(4) = 9641`, and the whole finite island | 359 | about a minute |
 | `n_min(5) = 246877`, and the whole finite island | 1 955 | about 1 h 10 |
 | `n_min(6) = 15748961` | 1 | 6 to 12 min, 6 to 10 GB |
 | optional: `G_5(490463)`, `G_5(600000)`, `G_5(2000000)` | 3 | minutes |
 | bands, `k = 3..7` | — | instant |
+
+**What 1.0 publishes (decided 2026-10-14).** A value bundle, with its bands,
+for each `n_min(k)`, `k = 2..6`; an island bundle for each finite island of
+`k = 4` and `k = 5`; value bundles for the optional `G_5` values. The `k = 3`
+cycles from 474 to 800 are not published in 1.0: that range is not a finite
+island, so it would need a new kind of bundle or 328 value bundles, for
+evidence the lab notebook already documents.
 
 What this removes: the migration of about 2 300 collected cycles and six
 published bundles, the extraction of provenance from the `final.pcdump.json`
@@ -590,7 +635,7 @@ over: MIT OR Apache-2.0 for code, CC0 for witnesses.
 2. ~~The manifest fields~~ **decided** (section 6.3): one manifest per
    `(k, n)`, identical in both trees; processor and system but no host name;
    no verification results; engine parameters by reference.
-3. ~~Time budget and resumption~~ **decided** (sections 5.1 to 5.3): run
+3. ~~Time budget and resumption~~ **decided** (sections 5.1, 5.2 and 5.4): run
    directories, wall-clock `--time-limit`, exit codes 0 / 2 / 1, `--resume`,
    per-segment provenance and seeds, a memory guard that `--force` overrides,
    the hybrid engine after 1.0.
@@ -603,8 +648,6 @@ over: MIT OR Apache-2.0 for code, CC0 for witnesses.
    regenerates every witness with `posum`, the island included.
 6. CI cost of verifying the larger witnesses (Lean's own CI is separate, after
    1.0).
-7. Regenerating a whole island (1 955 searches at `k = 5`) needs a batch
-   driver: `posum search` runs one `(k, n)`. Either a `posum sweep` command or
-   a script running searches in parallel, then `posum bundle add --island`.
+7. ~~Regenerating a whole island~~ **decided** (section 5.3): `posum sweep`.
 8. Offloaded files (`url` in a manifest): `posum check` reads them but does not
    fetch them yet, and reports a missing file as a failure.

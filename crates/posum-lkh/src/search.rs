@@ -35,6 +35,8 @@ pub struct Options {
     pub seed: u64,
     /// Start even when the memory estimate exceeds the available memory.
     pub force: bool,
+    /// Run LKH under `nice` with this increment, if any.
+    pub nice: Option<u8>,
 }
 
 /// One LKH run of a search.
@@ -621,7 +623,15 @@ fn segments(
 
         let started = crate::time::now();
         let clock = Instant::now();
-        let mut child = Command::new(&lkh.path)
+        let mut command = match options.nice {
+            Some(increment) if increment > 0 => {
+                let mut command = Command::new("nice");
+                command.arg("-n").arg(increment.to_string()).arg(&lkh.path);
+                command
+            }
+            _ => Command::new(&lkh.path),
+        };
+        let mut child = command
             .arg(&parameters)
             .current_dir(dir)
             .stdin(Stdio::null())

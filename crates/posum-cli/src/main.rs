@@ -4,6 +4,7 @@
 mod bundle;
 mod check;
 mod provenance;
+mod sweep;
 
 use std::fs::{self, File};
 use std::io::{self, BufReader, BufWriter, Write};
@@ -25,6 +26,8 @@ usage:
   posum bands <k> <n>                   lower-bound certificate for n, on stdout
   posum search <k> <n> [options]        find a Hamiltonian cycle with LKH
   posum search --resume <dir> [options] continue a search
+  posum sweep <k> <inf> <sup> [options] search every n of a range, in parallel
+  posum sweep <k> island [options]      every n of every finite island of G_k
   posum encode <k> <n> <cycle.txt>      plain list to bases, on stdout
   posum decode <k> <n> <cycle.bases>    bases to plain list, on stdout
   posum bundle add [--island] [--root <dir>] <run-dir>...
@@ -39,6 +42,13 @@ search options:
   --seed <s>           seed of the first segment (default: 1)
   --force              start even above the memory estimate
   --lkh <path>         LKH binary (default: $POSUM_LKH, then lkh/bin/LKH)
+  --nice <i>           run LKH under nice (search default: off, sweep: 19)
+
+sweep options, besides --time-limit (per n), --seed, --force, --lkh, --nice:
+  --jobs <j>           searches at once (default: cores, lowered to fit memory)
+  --run-root <dir>     run directories <dir>/k<k>-n<n> (default: runs)
+  --keep               keep problems and tours after success
+  Run the same sweep again to resume it; the table is <dir>/sweep.tsv.
 
 bundle and check use --root witness by default; --island puts a witness in
 the bundle of the finite admissible island containing n.
@@ -84,6 +94,7 @@ fn run(arguments: &[String]) -> Result<ExitCode, Failure> {
         ["search", rest @ ..] => search_command(rest),
         ["bundle", "add", rest @ ..] => bundle_add(rest),
         ["check", rest @ ..] => check_command(rest),
+        ["sweep", rest @ ..] => sweep::command(rest),
         _ => Err(Failure(format!(
             "invalid command; see posum --help\n\n{HELP}"
         ))),
@@ -169,8 +180,16 @@ fn bundle_add(words: &[&str]) -> Result<ExitCode, Failure> {
         ));
     }
     let root = bundle::Root { path: root };
+    let mut kinds = Vec::new();
     for run in &runs {
-        println!("{}", bundle::add(&root, run, island)?);
+        let (kind, message) = bundle::add(&root, run, island)?;
+        println!("{message}");
+        if !kinds.contains(&kind) {
+            kinds.push(kind);
+        }
+    }
+    for kind in &kinds {
+        bundle::refresh(&root, kind)?;
     }
     Ok(ExitCode::SUCCESS)
 }
@@ -236,6 +255,7 @@ fn search_command(words: &[&str]) -> Result<ExitCode, Failure> {
         time_limit: None,
         seed: 1,
         force: false,
+        nice: None,
     };
     let mut rest = words.iter();
     while let Some(&word) = rest.next() {
@@ -254,6 +274,13 @@ fn search_command(words: &[&str]) -> Result<ExitCode, Failure> {
                     .map_err(|_| Failure("seed too large".into()))?;
             }
             "--force" => options.force = true,
+            "--nice" => {
+                options.nice = Some(
+                    u8::try_from(integer(value("--nice")?, "nice")?)
+                        .map_err(|_| Failure("nice must be 0 to 19".into()))?
+                        .min(19),
+                );
+            }
             _ if word.starts_with("--") => return Err(Failure(format!("unknown option {word}"))),
             _ => positional.push(word),
         }
@@ -298,29 +325,36 @@ fn search_command(words: &[&str]) -> Result<ExitCode, Failure> {
                 Some(k) => k,
                 None => read_k(&dir)?,
             };
-            let n = Vertex::try_from(found.cycle.len())
-                .map_err(|_| Failure("cycle too long".into()))?;
-            let graph = Graph::new(graph_k, u128::from(n))?;
-            cycle::check_canonical(&graph, &found.cycle)?;
-            fs::create_dir_all(&dir).map_err(|e| Failure(format!("{}: {e}", dir.display())))?;
-            let id = write_witness(&dir, &found.cycle)?;
+            let n = found.cycle.len();
+            let id = record(&dir, graph_k, &found)?;
             let sha8 = &id[..8];
-            let text = provenance::render(
-                &id,
-                graph_k,
-                n,
-                &found,
-                provenance::cpu().as_deref(),
-                provenance::system().as_deref(),
-            );
-            let path = dir.join(format!("{sha8}.provenance.toml"));
-            fs::write(&path, text).map_err(|e| Failure(format!("{}: {e}", path.display())))?;
             eprintln!("posum: Hamiltonian cycle of G_{graph_k}({n}) found and checked");
             eprintln!("posum: {}", dir.join(format!("{sha8}.txt")).display());
             println!("{id}");
             Ok(ExitCode::SUCCESS)
         }
     }
+}
+
+/// Checks a found cycle, writes it as `<sha8>.txt` with its provenance in
+/// `dir`, and returns its identity.
+fn record(dir: &Path, k: u32, found: &posum_lkh::Found) -> Result<String, Failure> {
+    let n = Vertex::try_from(found.cycle.len()).map_err(|_| Failure("cycle too long".into()))?;
+    let graph = Graph::new(k, u128::from(n))?;
+    cycle::check_canonical(&graph, &found.cycle)?;
+    fs::create_dir_all(dir).map_err(|e| Failure(format!("{}: {e}", dir.display())))?;
+    let id = write_witness(dir, &found.cycle)?;
+    let text = provenance::render(
+        &id,
+        k,
+        n,
+        found,
+        provenance::cpu().as_deref(),
+        provenance::system().as_deref(),
+    );
+    let path = dir.join(format!("{}.provenance.toml", &id[..8]));
+    fs::write(&path, text).map_err(|e| Failure(format!("{}: {e}", path.display())))?;
+    Ok(id)
 }
 
 /// `k` from a run directory's state.

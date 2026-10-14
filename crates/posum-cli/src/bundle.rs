@@ -198,10 +198,12 @@ fn island_of(k: u32, n: u128) -> Result<Island, Failure> {
         })
 }
 
-/// Adds the witness of a run directory to its bundle, in both trees, then
-/// rewrites the bundle's derived files. With `island`, the bundle is the one
-/// of the finite island containing `n`; otherwise the value bundle of `n`.
-pub fn add(root: &Root, run_dir: &Path, island: bool) -> Result<String, Failure> {
+/// Adds the witness of a run directory to its bundle, in both trees, and
+/// returns the bundle with a message; the caller then rewrites the bundle's
+/// derived files with [`refresh`], once per bundle. With `island`, the
+/// bundle is the one of the finite island containing `n`; otherwise the
+/// value bundle of `n`.
+pub fn add(root: &Root, run_dir: &Path, island: bool) -> Result<(Kind, String), Failure> {
     let provenances: Vec<PathBuf> = fs::read_dir(run_dir)
         .map_err(|e| Failure(format!("{}: {e}", run_dir.display())))?
         .filter_map(Result::ok)
@@ -290,13 +292,13 @@ pub fn add(root: &Root, run_dir: &Path, island: bool) -> Result<String, Failure>
         write(&parameters, PARAMETERS.as_bytes())?;
     }
 
-    refresh(root, &kind)?;
-    Ok(format!(
+    let message = format!(
         "{} {sha8} {} {}",
         if added { "added" } else { "already present:" },
         if added { "to" } else { "in" },
         kind.name()
-    ))
+    );
+    Ok((kind, message))
 }
 
 /// The identities of the witnesses in a directory, from their provenance
