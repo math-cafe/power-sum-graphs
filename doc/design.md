@@ -86,6 +86,11 @@ power-sum-graphs/
 └── .github/workflows/
 ```
 
+**Built clean, not moved (decided).** Moving the lab notebook's code with new
+names would bring its disorder along, which is precisely what this repository
+must avoid. Each part is rebuilt to this design, reusing proven algorithms and
+tests, not their structure.
+
 ### What carries over from the lab notebook, and what does not
 
 Carried over, rewritten where needed: the graph and the preflight, degree-two
@@ -217,6 +222,13 @@ witness/plain/k6-n15748961/          witness/bases/k6-n15748961/
 - Each witness directory is named by the first 8 hex digits of the SHA-256 of
   its canonical plain list, identical in both trees.
 - The manifest names one **reference witness**, the one cited in papers.
+
+**Island bundles (decided).** A result that covers a whole range of `n` — the
+finite islands of `k = 4` and `k = 5`, every `n` of which is Hamiltonian — is
+one bundle per island and per tree, with one manifest listing every `n` and its
+witnesses, instead of one directory and manifest per `n`: two manifests for the
+`k = 5` island instead of about 3 900. The exact layout is for
+`doc/formats.md`.
 
 ### 6.2 Encodings (decided)
 
