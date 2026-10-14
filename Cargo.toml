@@ -1,0 +1,25 @@
+[workspace]
+resolver = "3"
+members = ["crates/posum-core"]
+# verify/rust is deliberately not a member: it shares nothing with posum.
+
+[workspace.package]
+version = "1.0.0-dev"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/math-cafe/power-sum-graphs"
+rust-version = "1.97"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+# Internal invariants are asserted with expect; documenting each as a panic
+# would bury the real preconditions, which are documented.
+missing_panics_doc = "allow"
+# Graph is Copy and 8 bytes, but its methods take &self like any type's.
+trivially_copy_pass_by_ref = "allow"
+many_single_char_names = "allow"

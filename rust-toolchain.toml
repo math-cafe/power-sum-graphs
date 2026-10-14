@@ -1,0 +1,5 @@
+# Pinned so that published results are reproducible on the exact toolchain
+# that produced them.
+[toolchain]
+channel = "1.97.1"
+components = ["rustfmt", "clippy"]
