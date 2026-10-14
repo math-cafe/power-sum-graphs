@@ -331,11 +331,12 @@ verification result.
 | `k`, `n` | integers | yes | as in the manifest |
 | `found` | string | yes | date and time found, ISO 8601, UTC, to the second |
 | `posum` | string | yes | posum version, e.g. `"1.0.0"` |
-| `engine` | string | yes | `"lkh"` |
+| `engine` | string | yes | `"lkh"`, or `"propagation"` when propagation alone forced the cycle |
 | `cpu` | string | no | processor model |
 | `system` | string | no | operating system and kernel |
 
-then a table describing the engine run:
+then, for `engine = "lkh"`, a table describing the run (`"propagation"` has
+none):
 
 ```toml
 [lkh]
@@ -347,13 +348,18 @@ seed = 1
 segments = 1
 seconds = 351
 trials = 1
-parameters = "witness/engines/<file>.par"
+parameters = "witness/engines/lkh-posum-1.par"
 parameters_sha256 = "<sha256>"
 ```
 
-`segments` counts the runs of a resumed search; when it exceeds 1, one
-`[[lkh.segment]]` table per segment follows, with `seed`, `started`, `seconds`
-and `initial_tour_sha256`. The host name MUST NOT be recorded.
+`guard_overridden = true` follows `parameters_sha256` when the memory guard
+was overridden with `--force` at any segment; the key is absent otherwise.
+
+`segments` counts the LKH runs of the search, resumed or not; when it exceeds
+1, one `[[lkh.segment]]` table per segment follows, with `seed`, `started`,
+`seconds`, `trials` and, for a segment that started from an earlier tour,
+`initial_tour_sha256`. Keys appear in the order of this section; `cpu` and
+`system` hold ASCII without `"` or `\`. The host name MUST NOT be recorded.
 
 Parameter files live once under `witness/engines/` and are referenced by path
 and SHA-256.

@@ -5,7 +5,8 @@
 # Usage:
 #   scripts/build-lkh.sh [--prefix DIR] [--two-level] [--keep-build]
 #
-#   --prefix DIR   install the binary as DIR/LKH (default: ./lkh/bin)
+#   --prefix DIR   install the binary as DIR/LKH, with DIR/LKH.toml describing
+#                  the build for posum (default: ./lkh/bin)
 #   --two-level    keep LKH's default TWO_LEVEL_TREE instead of THREE_LEVEL_TREE
 #   --keep-build   keep the build directory instead of removing it
 #
@@ -39,7 +40,7 @@ while [ $# -gt 0 ]; do
         --prefix) prefix="$2"; shift 2 ;;
         --two-level) tree="TWO_LEVEL_TREE"; shift ;;
         --keep-build) keep=1; shift ;;
-        -h|--help) sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help) sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "build-lkh: unknown option $1" >&2; exit 2 ;;
     esac
 done
@@ -132,6 +133,12 @@ echo "build-lkh: smoke test passed, the unique Hamiltonian cycle of G_2(32) foun
 
 mkdir -p "$prefix"
 install -m 755 "$src/LKH" "$prefix/LKH"
-echo "build-lkh: installed $prefix/LKH"
-echo "build-lkh: binary SHA-256 $(sha "$prefix/LKH")"
+binary_sha="$(sha "$prefix/LKH")"
+# What posum records in every provenance, read back rather than assumed. posum
+# refuses a binary whose SHA-256 differs from the one written here.
+case "$tree" in THREE_LEVEL_TREE) tree_name="three-level" ;; *) tree_name="two-level" ;; esac
+printf 'version = "%s"\ntree = "%s"\nbinary_sha256 = "%s"\n' \
+    "$VERSION" "$tree_name" "$binary_sha" >"$prefix/LKH.toml"
+echo "build-lkh: installed $prefix/LKH and $prefix/LKH.toml"
+echo "build-lkh: binary SHA-256 $binary_sha"
 echo "build-lkh: LKH is (c) Keld Helsgaun, for academic and non-commercial use only."

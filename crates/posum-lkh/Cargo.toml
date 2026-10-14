@@ -1,0 +1,17 @@
+[package]
+name = "posum-lkh"
+description = "Run LKH-3 on power-sum graphs: TSPLIB export, run directories, time limits, resumption"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+# LKH itself is never a dependency: it runs as a separate process, built on
+# the user's machine by scripts/build-lkh.sh.
+[dependencies]
+posum-core = { path = "../posum-core" }
+sha2 = "0.11"
+
+[lints]
+workspace = true

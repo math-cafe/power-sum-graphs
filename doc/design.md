@@ -95,31 +95,55 @@ tests, not their structure.
 
 ### What carries over from the lab notebook, and what does not
 
-Carried over, rewritten where needed: the graph and the preflight, degree-two
-propagation (with the chain-closing rule it lacks today), chain contraction,
-the SAT + repair engine, the TSPLIB bridge, canonical order, the bands
-certificate, both verifiers, the bundle builder and the pre-publication gate.
+Carried over, rewritten where needed: the graph and the degree preflight,
+degree-two propagation (now with the chain-closing rule), chain contraction,
+the TSPLIB bridge, canonical order, the bands certificate, both verifiers, the
+bundle builder and the pre-publication gate.
 
-Left behind: the per-`n` scan (bands come from the island chain directly), the
-separate `pc-patch` binary (folded into `search`), the dump format as a
-published artefact (kept internal, for checkpoints), the nice-pair and glue
-experiments, the build benchmarks, the research notes.
+Left behind: the SAT + repair engine and the `pc-patch` binary (LKH is the only
+engine, section 5), the per-`n` scan (bands come from the island chain
+directly), the articulation-vertex test (no island instance needs it), the dump
+format, the nice-pair and glue experiments, the build benchmarks, the research
+notes.
+
+**posum-core (written, commit `a360eda`).** No dependency. The graph is
+computed by formula and stores no edge; propagation keeps one byte per
+incidence slot and about 25 bytes per vertex, so about 400 MB at
+`G_6(15748961)`, which propagates in 3.0 s. It was checked against every
+witness of the lab notebook for `k = 3..6`: no forced edge missing, no
+forbidden edge used. The chain-closing rule forbids one more edge at `G_6`
+than the lab notebook's propagation: 8 813 404 nodes after contraction, against
+8 813 406.
 
 ---
 
-## 4. Commands (proposal)
+## 4. Commands (written)
 
 ```console
 posum islands <k>                         admissible islands of G_k
 posum bands <k> <n>                       lower-bound certificate for n
 posum search <k> <n>                      find a Hamiltonian cycle with LKH
-             [--time-limit T] [--run-dir D] [--force]
-posum search --resume <D> [--time-limit T] [--force]
+             [--time-limit T] [--run-dir D] [--seed S] [--force] [--lkh P]
+posum search --resume <D> [--time-limit T] [--force] [--lkh P]
 posum encode <k> <n> cycle.txt            plain list -> bases
 posum decode <k> <n> cycle.bases          bases -> plain list
-posum bundle <k> <n> ...                  build or verify a bundle
-posum check                               the whole pre-publication gate
+posum bundle add [--island] <run-dir>...  add found witnesses to their bundles
+posum check [--root R] [--jobs J]         every bundle, both trees, both verifiers
 ```
+
+`posum bundle add` copies a run directory's witness into its value bundle, or
+with `--island` into the bundle of the finite island containing `n`, in both
+trees, then rewrites the bundle's manifests, READMEs and bands file from the
+files present: nothing derived is edited by hand. The reference witness is the
+first one added and stays so. `posum check` implements `doc/formats.md`
+section 10.2; the scripts/check.sh gate will call it.
+
+`posum search` needs an LKH built by `scripts/build-lkh.sh`, which writes
+`LKH.toml` next to the binary — version, tree, SHA-256 — so that the
+provenance records what was run rather than what is assumed; posum refuses a
+binary whose SHA-256 differs. A search gives up after 100 consecutive segments
+that end without improving the best tour: LKH cannot prove that no cycle
+exists, and on `G_2(31)`, which has none, it would otherwise loop forever.
 
 `bands` computes the certificate from the chain of blocking vertices, in
 `O(k)`, instead of scanning every `n`.
@@ -183,9 +207,10 @@ the best tour so far: its internal state is lost, the tour's quality is kept. A
 reboot during a search of several days costs at most the work since the last
 improvement.
 
-- **One run directory per search** holds its whole state: the problem files
-  (`.hcp`, `.chains`), the best tour and its cost or the last SAT checkpoint, a
-  log, and the provenance so far.
+- **One run directory per search** holds its whole state: the problem and
+  parameter files, the best tour and its cost, a log, and the provenance so
+  far. No chains file: contraction is deterministic, and `--resume` recomputes
+  it from `(k, n)`.
 - **`--time-limit`** is wall-clock time over the whole search. When it runs
   out, the search stops cleanly and keeps its best state.
 - **Exit codes:** `0` a cycle found and verified; `2` time ran out, the search
@@ -435,10 +460,15 @@ the old ones yet, and they stay published at the lab notebook's tags — and the
 plurality of methods behind the island evidence, which was supporting, never
 necessary: the proof rests on verification.
 
-**A free reproducibility check.** With the same export, seed and an LKH built by
-`scripts/build-lkh.sh`, `posum` is expected to reproduce the cycles of the
-14 October sweep exactly: the same seed has given the same cycle across two
-different builds. A difference would show that the rewrite changed something.
+**A reproducibility check, and its limit (measured 2026-10-14).** The LKH built
+by `scripts/build-lkh.sh` (`66791e48…`), given the lab notebook's export of
+`G_5(246877)` and seed 1, reproduces the 14 October sweep's cycle `cdb7e12f`
+exactly, in the same 4 trials as the installed binary (`bb05ca46…`). posum's
+own export is not the same instance, however: the chain-closing rule forbids
+one more edge, which leaves 85 485 nodes instead of 85 486 and renumbers them,
+so posum finds a different cycle (`25b320b3`). That is expected and harmless,
+since witnesses are verified, not reproduced; it means the 1.0 witnesses
+cannot be expected to coincide with the sweep's.
 
 **The lab notebook is still archived on Software Heritage before 1.0
 (decided)**, now as the permanent reference for the SAT + repair engine and the
@@ -573,3 +603,8 @@ over: MIT OR Apache-2.0 for code, CC0 for witnesses.
    regenerates every witness with `posum`, the island included.
 6. CI cost of verifying the larger witnesses (Lean's own CI is separate, after
    1.0).
+7. Regenerating a whole island (1 955 searches at `k = 5`) needs a batch
+   driver: `posum search` runs one `(k, n)`. Either a `posum sweep` command or
+   a script running searches in parallel, then `posum bundle add --island`.
+8. Offloaded files (`url` in a manifest): `posum check` reads them but does not
+   fetch them yet, and reports a missing file as a failure.
