@@ -291,40 +291,39 @@ format = "posum-bundle 1"
 k = 6
 n = 15748961
 claims = ["hamiltonian", "minimal"]   # "minimal" requires [bands]
-reference = "5f2b4192388caf36..."     # full SHA-256 of the cited witness
+reference = "<sha256>"                # full SHA-256 of the cited witness
 
 [bands]
 file = "bands.txt"
-sha256 = "015b5be7015d2f6d..."
+sha256 = "<sha256>"
 count = 16                            # bands covering 1..n-1
 
 [[witness]]
-id = "5f2b4192388caf36..."            # SHA-256 of the canonical plain list
-plain = { file = "5f2b4192/cycle.txt.xz", url = "https://github.com/.../k6-plain.tar" }
-bases = { file = "5f2b4192/cycle.bases.xz" }
-found = "2026-08-23"
-engine = "sat-repair"
-provenance = "powercycle 0.1.0, pc-search --max-depth=9, about 27 h 45"
+id = "<sha256>"                       # SHA-256 of the canonical plain list
+plain = { file = "<sha8>.txt.xz", url = "https://github.com/.../k6-plain.tar" }
+bases = { file = "<sha8>.bases.xz" }
+provenance = "<sha8>.provenance.toml"
+```
 
-[[witness]]
-id = "6c575cc2..."
-plain = { file = "6c575cc2/cycle.txt.xz", url = "https://github.com/.../k6-plain.tar" }
-bases = { file = "6c575cc2/cycle.bases.xz" }
-found = "2026-10-11"
+and the witness's provenance, in its own file:
+
+```toml
+found = "2026-..."
 engine = "lkh"
+posum = "1.0.0"
 cpu = "AMD Ryzen 9 7940HS"
 system = "Linux 7.2.9"
 
-  [witness.lkh]
-  version = "3.0.14"
-  binary_sha256 = "bb05ca46843ccdbb..."
-  tree = "three-level"
-  contracted = true
-  seed = 1
-  seconds = 351
-  trials = 1
-  parameters = "witness/engines/lkh-3.0.14-default.par"
-  parameters_sha256 = "..."
+[lkh]
+version = "3.0.14"
+binary_sha256 = "<sha256>"            # as built by scripts/build-lkh.sh
+tree = "three-level"
+contracted = true
+seed = 1
+seconds = 351
+trials = 1
+parameters = "witness/engines/lkh-3.0.14-default.par"
+parameters_sha256 = "<sha256>"
 ```
 
 A non-minimal value has `claims = ["hamiltonian"]` and no `[bands]`. Since
