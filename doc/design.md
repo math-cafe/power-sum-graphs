@@ -333,6 +333,60 @@ Rules (decided):
 - **The reference witness** is the one cited in papers: the first published
   where one exists, otherwise a witness with recorded provenance.
 
+### 6.3b Formats and names, refined (decided 2026-10-14)
+
+These supersede the examples above where they differ; `doc/formats.md` will
+specify them normatively, with valid and invalid test vectors both verifiers
+must agree on.
+
+- **Bases are ASCII decimal**, one per line. A `uint8` would cap bases at 255,
+  which `k = 2` passes from `n` near 32 000, and saves only 7 % after xz.
+- **Bands:** `inf - sup` for a range, `n` for a single value, one space on
+  each side of the dash, then the blocking vertex and its degree. Every line
+  is an obstruction, so `IMPOSSIBLE` is dropped:
+
+  ```text
+  1 - 14         vertex=1 degree=0
+  15 - 79        vertex=1 degree=1
+  5904 - 9640    vertex=5000 degree=1
+  ```
+
+  A bands file never contains an unbounded range: it covers exactly `1..n-1`.
+- **Islands** (`posum islands`) use the same notation, with `inf - ...` for the
+  final, unbounded island:
+
+  ```text
+  9641 - 9999
+  18193 - ...
+  ```
+
+- **Manifest:** TOML, always written by the tool with fixed serialisation rules
+  so that the copies in both trees are byte-identical. It stays short — the
+  claims, the certificates, the list of witnesses with their identifiers — and
+  **each witness's provenance is a separate file** next to it. Required fields
+  are the minimum: format, `k`, `n` or the island range, the claims, and each
+  witness's identifier; engine, duration and processor are optional, since
+  older witnesses lack them.
+- **Names, flattened.** No subdirectory per witness: the provenance file makes
+  it pointless, and an island would otherwise nest three levels deep.
+
+  ```text
+  witness/plain/k6-n15748961/            witness/plain/k5-n246877-248831/
+  ├── manifest.toml                      ├── manifest.toml
+  ├── bands.txt                          ├── README.md
+  ├── README.md                          ├── n246877/
+  ├── 5f2b4192.txt.xz                    │   ├── <sha8>.txt.xz
+  ├── 5f2b4192.provenance.toml           │   ├── <sha8>.provenance.toml
+  └── ...                                │   └── c458203e.txt.xz
+                                         └── ... one directory per n
+  ```
+
+  `k<k>-n<n>` for a fixed `n`, `k<k>-n<inf>-<sup>` for an island, `n<n>/`
+  inside an island, `<sha8>.txt.xz` or `<sha8>.bases.xz` for a cycle and
+  `<sha8>.provenance.toml` for its provenance, the prefix taken from the
+  SHA-256 of the canonical plain list. An island bundle has no `bands.txt`: it
+  claims Hamiltonicity for every `n`, not minimality.
+
 ### 6.4 Verification (decided)
 
 Each verifier, Rust and Python, independently: reads either encoding, checks
