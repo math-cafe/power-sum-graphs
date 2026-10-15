@@ -120,7 +120,9 @@ SHA-256 and builds it on your machine.
 - The exploration behind this release — the SAT-based engine that first found
   `n_min(5)` and `n_min(6)`, measurements, failures, research notes — is the
   lab notebook [math-cafe/powercycle](https://github.com/math-cafe/powercycle),
-  kept public as provenance. Its witnesses are valid and independently
+  kept public as provenance and archived on Software Heritage
+  ([swh:1:snp:8586949f0bcc2c1b722394d9d481d024f2cfda88](https://archive.softwareheritage.org/swh:1:snp:8586949f0bcc2c1b722394d9d481d024f2cfda88)).
+  Its witnesses are valid and independently
   verified; release 1.0 publishes only witnesses found again by posum.
 
 ## Licences and citation

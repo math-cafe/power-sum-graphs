@@ -126,7 +126,9 @@ vérifie son SHA-256 et le compile sur votre machine.
   premier `n_min(5)` et `n_min(6)`, les mesures, les échecs, les notes de
   recherche — est le carnet de laboratoire
   [math-cafe/powercycle](https://github.com/math-cafe/powercycle), public, cité
-  comme provenance. Ses témoins sont valides et vérifiés indépendamment ; la
+  comme provenance et archivé sur Software Heritage
+  ([swh:1:snp:8586949f0bcc2c1b722394d9d481d024f2cfda88](https://archive.softwareheritage.org/swh:1:snp:8586949f0bcc2c1b722394d9d481d024f2cfda88)).
+  Ses témoins sont valides et vérifiés indépendamment ; la
   release 1.0 ne publie que des témoins retrouvés par posum.
 
 ## Licences et citation

@@ -524,8 +524,9 @@ so posum finds a different cycle (`25b320b3`). That is expected and harmless,
 since witnesses are verified, not reproduced; it means the 1.0 witnesses
 cannot be expected to coincide with the sweep's.
 
-**The lab notebook is still archived on Software Heritage before 1.0
-(decided)**, now as the permanent reference for the SAT + repair engine and the
+**The lab notebook is archived on Software Heritage before 1.0 (done
+2026-10-15: snapshot `swh:1:snp:8586949f0bcc2c1b722394d9d481d024f2cfda88`,
+head `swh:1:rev:2a3ba318be02d7aa1eb79e841c7dce1d4f247922`)**, now as the permanent reference for the SAT + repair engine and the
 history the computational paper describes, rather than for witness provenance.
 
 ### 6.4 Verification (decided)
