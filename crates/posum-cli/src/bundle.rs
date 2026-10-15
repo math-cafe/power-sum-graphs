@@ -473,11 +473,25 @@ fn readme_value(k: u32, n: u128, minimal: bool, reference: &str, count: usize) -
         ));
     } else {
         text.push_str(&format!("G_{k}({n}) has a Hamiltonian cycle.\n\n"));
+        if (k, n) == (2, 32) {
+            // No bands file can certify it: G_2(31) has every degree at
+            // least two. doc/design.md section 6.3c.
+            text.push_str(
+                "32 is also the least n for which G_2(n) is Hamiltonian, a known result\n\
+                 (B. Dobbelaere, OEIS A071984) cited here, not certified: G_2(31) has every\n\
+                 degree at least two, so no bands file can rule it out.\n\n",
+            );
+        }
     }
-    text.push_str(&format!(
-        "- {count} witness{} found by posum, each with its provenance; the reference,\n  cited in papers, is `{reference}`.\n\n",
-        if count == 1 { "" } else { "es" }
-    ));
+    if count == 1 {
+        text.push_str(&format!(
+            "- 1 witness found by posum, with its provenance, cited in papers:\n  `{reference}`.\n\n"
+        ));
+    } else {
+        text.push_str(&format!(
+            "- {count} witnesses found by posum, each with its provenance; the reference,\n  cited in papers, is `{reference}`.\n\n"
+        ));
+    }
     text.push_str(&format!(
         "Check a witness with either independent verifier of the repository, after\n\
          decompressing it:\n\n\

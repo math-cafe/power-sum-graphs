@@ -43,7 +43,7 @@ repositories and with a common shell alias for `ps aux | grep`, and PΣG with it
 | `n_min(5) = 246877`, `n_min(6) = 15748961` | new, as far as is known | — |
 | `n_min(7) >= 587761723` | lower bound | — |
 | admissible islands `I_k = { n : delta(G_k(n)) >= 2 }` for `k = 2..12` | characterisation and `O(k)` computation | — |
-| `G_2(31)` is not Hamiltonian | known (B. Dobbelaere, A071984); explicit certificate here | — |
+| `G_2(31)` is not Hamiltonian | known (B. Dobbelaere, A071984); cited, not certified in 1.0 (section 6.3c) | — |
 | every `n` of the finite islands of `k = 4` and `k = 5` is Hamiltonian | evidence for the conjecture below | — |
 
 **Conjecture:** for `k >= 3`, `G_k(n)` is Hamiltonian exactly when
@@ -496,6 +496,13 @@ for each `n_min(k)`, `k = 2..6`; an island bundle for each finite island of
 cycles from 474 to 800 are not published in 1.0: that range is not a finite
 island, so it would need a new kind of bundle or 328 value bundles, for
 evidence the lab notebook already documents.
+
+**`k = 2` claims Hamiltonicity only (decided 2026-10-15).** No bands file can
+certify `n_min(2) = 32`: `G_2(31)` has every degree at least two and is not
+Hamiltonian for a reason degrees do not see. The `k2-n32` bundle therefore
+claims `hamiltonian` alone, and its README cites the minimality as a known
+result (B. Dobbelaere, OEIS A071984), not one certified here. An explicit
+certificate for `G_2(31)`, then its Lean proof, are for after 1.0.
 
 What this removes: the migration of about 2 300 collected cycles and six
 published bundles, the extraction of provenance from the `final.pcdump.json`
