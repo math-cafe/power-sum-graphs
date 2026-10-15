@@ -12,6 +12,8 @@ une puissance `k`-ième ; pour `k = 2`, c'est le problème classique des sommes
 de carrés. `n_min(k)` est le plus petit `n` pour lequel une telle disposition
 existe, suite OEIS [A115418](https://oeis.org/A115418).
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23403537.svg)](https://doi.org/10.5281/zenodo.23403537)
+
 [English](README.md)
 
 ## Résultats
@@ -137,8 +139,9 @@ Code : MIT ou Apache-2.0, au choix ([LICENSE](LICENSE)). Témoins : domaine
 public, CC0 1.0 ([witness/LICENSE](witness/LICENSE)).
 
 La release 1.0.0 — le code et les deux arbres de témoins — est archivée sur
-Zenodo : [doi:10.5281/zenodo.23403537](https://doi.org/10.5281/zenodo.23403537).
-Pour la citer, voir [CITATION.cff](CITATION.cff) :
+Zenodo : [doi:10.5281/zenodo.23403537](https://doi.org/10.5281/zenodo.23403537) ; le
+DOI [10.5281/zenodo.23403536](https://doi.org/10.5281/zenodo.23403536) désigne
+toujours la dernière version. Pour citer celle-ci, voir [CITATION.cff](CITATION.cff) :
 
 > Nouvier, F. (2026). *power-sum-graphs 1.0.0: Hamiltonian cycles of
 > power-sum graphs, with certificates* (Version 1.0.0). Zenodo.

@@ -10,6 +10,8 @@ so that every two neighbours sum to a `k`-th power; for `k = 2` this is the
 classical square-sum problem. `n_min(k)` is the least `n` for which such an
 arrangement exists, OEIS [A115418](https://oeis.org/A115418).
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23403537.svg)](https://doi.org/10.5281/zenodo.23403537)
+
 [Français](README.fr.md)
 
 ## Results
@@ -131,8 +133,9 @@ Code: MIT or Apache-2.0, at your option ([LICENSE](LICENSE)). Witnesses:
 public domain, CC0 1.0 ([witness/LICENSE](witness/LICENSE)).
 
 Release 1.0.0 — the source and both witness trees — is archived on Zenodo:
-[doi:10.5281/zenodo.23403537](https://doi.org/10.5281/zenodo.23403537). To
-cite it, see [CITATION.cff](CITATION.cff):
+[doi:10.5281/zenodo.23403537](https://doi.org/10.5281/zenodo.23403537); the
+DOI [10.5281/zenodo.23403536](https://doi.org/10.5281/zenodo.23403536) always
+points to the latest version. To cite this one, see [CITATION.cff](CITATION.cff):
 
 > Nouvier, F. (2026). *power-sum-graphs 1.0.0: Hamiltonian cycles of
 > power-sum graphs, with certificates* (Version 1.0.0). Zenodo.
