@@ -1,8 +1,8 @@
 id = "5d4bf2f07fc9e7810edb92f5d6d766b404c0cfcbcefc3b85d2e67711a0b80b57"
 k = 5
 n = 247415
-found = "2026-10-14T22:06:31Z"
-posum = "1.0.0-dev"
+found = "2026-10-15T15:00:46Z"
+posum = "1.0.0"
 engine = "lkh"
 cpu = "AMD Ryzen 9 7940HS w/ Radeon 780M Graphics"
 system = "Linux 7.2.9-1-cachyos"
