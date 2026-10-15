@@ -1,0 +1,16 @@
+1 - 62 vertex=1 degree=0
+63 - 727 vertex=1 degree=1
+728 - 4063 vertex=32 degree=1
+4064 - 14895 vertex=729 degree=1
+14896 - 44607 vertex=2048 degree=1
+44608 - 102023 vertex=15625 degree=1
+102024 - 238815 vertex=23328 degree=1
+238816 - 413791 vertex=117649 degree=1
+413792 - 868927 vertex=131072 degree=1
+868928 - 1271560 vertex=500000 degree=1
+1271561 - 1985983 vertex=1000000 degree=1
+1985984 - 3333816 vertex=1492992 degree=1
+3333817 - 4543551 vertex=2985984 degree=1
+4543552 - 7625856 vertex=3764768 degree=1
+7625857 - 9247679 vertex=7529536 degree=1
+9247680 - 15748960 vertex=8388608 degree=1

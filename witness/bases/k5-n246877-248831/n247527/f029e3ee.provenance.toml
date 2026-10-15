@@ -1,0 +1,20 @@
+id = "f029e3ee51df0994260e06c0b303478a9d7aa502f157cfe1efb142b9d9484504"
+k = 5
+n = 247527
+found = "2026-10-14T22:08:47Z"
+posum = "1.0.0-dev"
+engine = "lkh"
+cpu = "AMD Ryzen 9 7940HS w/ Radeon 780M Graphics"
+system = "Linux 7.2.9-1-cachyos"
+
+[lkh]
+version = "3.0.14"
+binary_sha256 = "66791e48dca1f49017585a56a9fe55775f6541adee526a313e73f55260b26761"
+tree = "three-level"
+contracted = true
+seed = 1
+segments = 1
+seconds = 34
+trials = 31
+parameters = "witness/engines/lkh-posum-1.par"
+parameters_sha256 = "6b4510e50e620b4dd57a621f7a619d9421ddcfcf3d8f5d0fae48cd533174334b"

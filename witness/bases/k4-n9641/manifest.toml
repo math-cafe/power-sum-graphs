@@ -1,0 +1,16 @@
+format = "posum-bundle 1"
+k = 4
+n = 9641
+claims = ["hamiltonian", "minimal"]
+reference = "cac088f0e2a21fd7f3fe38ef3a5c9b6dd0c5b4edcc3822cb5492d7b919b4d7bc"
+
+[bands]
+file = "bands.txt"
+sha256 = "7ffc574aa50a362b1deb4371c9481147b1d3977809ec412e4952303f84eabd83"
+count = 10
+
+[[witness]]
+id = "cac088f0e2a21fd7f3fe38ef3a5c9b6dd0c5b4edcc3822cb5492d7b919b4d7bc"
+plain = { file = "cac088f0.txt.xz" }
+bases = { file = "cac088f0.bases.xz" }
+provenance = "cac088f0.provenance.toml"

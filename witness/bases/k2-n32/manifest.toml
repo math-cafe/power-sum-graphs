@@ -1,0 +1,11 @@
+format = "posum-bundle 1"
+k = 2
+n = 32
+claims = ["hamiltonian"]
+reference = "7ace7e14d665b3d285c1948f068eaeaf26ea74270c63b329bbea41735371dc0c"
+
+[[witness]]
+id = "7ace7e14d665b3d285c1948f068eaeaf26ea74270c63b329bbea41735371dc0c"
+plain = { file = "7ace7e14.txt.xz" }
+bases = { file = "7ace7e14.bases.xz" }
+provenance = "7ace7e14.provenance.toml"
