@@ -4,7 +4,7 @@ members = ["crates/posum-core", "crates/posum-lkh", "crates/posum-cli"]
 # verify/rust is deliberately not a member: it shares nothing with posum.
 
 [workspace.package]
-version = "1.0.0-dev"
+version = "1.0.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/math-cafe/power-sum-graphs"
