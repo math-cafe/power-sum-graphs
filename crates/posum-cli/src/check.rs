@@ -548,7 +548,7 @@ fn listing(dir: &Path, tree: Tree) -> Result<BTreeSet<String>, String> {
 
 /// Checks one bundle in both trees, structure first; returns the witness
 /// files left to verify.
-fn check_bundle(root: &Root, kind: &Kind) -> Result<Vec<Job>, String> {
+fn check_bundle(root: &Root, kind: &Kind, trees: &[Tree]) -> Result<Vec<Job>, String> {
     let plain = root.bundle(Tree::Plain, kind);
     let bases = root.bundle(Tree::Bases, kind);
     if !bases.is_dir() {
@@ -558,44 +558,50 @@ fn check_bundle(root: &Root, kind: &Kind) -> Result<Vec<Job>, String> {
             bases.display()
         ));
     }
-    let manifest = fs::read(plain.join("manifest.toml"))
-        .map_err(|e| format!("{}: {e}", plain.join("manifest.toml").display()))?;
-    let text = String::from_utf8(manifest.clone())
-        .map_err(|_| format!("{}: manifest not UTF-8", plain.display()))?;
+    let manifest = fs::read(bases.join("manifest.toml"))
+        .map_err(|e| format!("{}: {e}", bases.join("manifest.toml").display()))?;
+    let text = String::from_utf8(manifest)
+        .map_err(|_| format!("{}: manifest not UTF-8", bases.display()))?;
     let document =
-        state::parse(&text).map_err(|e| format!("{}/manifest.toml: {e}", plain.display()))?;
+        state::parse(&text).map_err(|e| format!("{}/manifest.toml: {e}", bases.display()))?;
     if state::render(&document) != text {
         return Err(format!(
             "{}/manifest.toml: not in canonical form",
-            plain.display()
+            bases.display()
         ));
     }
     let witnesses = match *kind {
-        Kind::Value { k, n } => check_value_manifest(&document, k, n, &plain)?,
-        Kind::Island { k, inf, sup } => check_island_manifest(&document, k, inf, sup, &plain)?,
+        Kind::Value { k, n } => check_value_manifest(&document, k, n, &bases)?,
+        Kind::Island { k, inf, sup } => check_island_manifest(&document, k, inf, sup, &bases)?,
     };
 
-    let (left, right) = (listing(&plain, Tree::Plain)?, listing(&bases, Tree::Bases)?);
-    if left != right {
-        let only: Vec<_> = left.symmetric_difference(&right).take(3).cloned().collect();
-        return Err(format!(
-            "{}: the two trees hold different files, e.g. {only:?}",
-            kind.name()
-        ));
-    }
-    for relative in &left {
-        if !relative.ends_with(".<cycle>")
-            && fs::read(plain.join(relative)).ok() != fs::read(bases.join(relative)).ok()
-        {
+    let left = listing(&bases, Tree::Bases)?;
+    if trees.contains(&Tree::Plain) {
+        if !plain.is_dir() {
+            return Err(format!("{} is missing from the plain tree", kind.name()));
+        }
+        let right = listing(&plain, Tree::Plain)?;
+        if left != right {
+            let only: Vec<_> = left.symmetric_difference(&right).take(3).cloned().collect();
             return Err(format!(
-                "{}: {relative} differs between the trees",
+                "{}: the two trees hold different files, e.g. {only:?}",
                 kind.name()
             ));
+        }
+        for relative in &left {
+            if !relative.ends_with(".<cycle>")
+                && fs::read(plain.join(relative)).ok() != fs::read(bases.join(relative)).ok()
+            {
+                return Err(format!(
+                    "{}: {relative} differs between the trees",
+                    kind.name()
+                ));
+            }
         }
     }
 
     let mut expected = BTreeSet::from(["manifest.toml".to_owned(), "README.md".to_owned()]);
-    if plain.join("bands.txt").exists() {
+    if bases.join("bands.txt").exists() {
         expected.insert("bands.txt".into());
     }
     let mut jobs = Vec::new();
@@ -607,7 +613,7 @@ fn check_bundle(root: &Root, kind: &Kind) -> Result<Vec<Job>, String> {
         };
         expected.insert(format!("{prefix}{sha8}.<cycle>"));
         expected.insert(format!("{prefix}{sha8}.provenance.toml"));
-        let dir = root.witnesses(Tree::Plain, kind, *n);
+        let dir = root.witnesses(Tree::Bases, kind, *n);
         check_provenance(
             root,
             &dir.join(format!("{sha8}.provenance.toml")),
@@ -615,7 +621,7 @@ fn check_bundle(root: &Root, kind: &Kind) -> Result<Vec<Job>, String> {
             kind.k(),
             *n,
         )?;
-        for tree in Tree::BOTH {
+        for &tree in trees {
             let path = root.witnesses(tree, kind, *n).join(tree.cycle_file(sha8));
             if !path.is_file() {
                 return Err(format!("{} is missing", path.display()));
@@ -641,12 +647,12 @@ fn check_bundle(root: &Root, kind: &Kind) -> Result<Vec<Job>, String> {
         ));
     }
     if let Kind::Value { k, n } = *kind
-        && plain.join("bands.txt").exists()
+        && bases.join("bands.txt").exists()
     {
         Verifiers::locate(&repository(root))
             .map_err(|f| f.0)?
-            .accept("bands", k, n, &plain.join("bands.txt"))
-            .map_err(|e| format!("{}/bands.txt: {e}", plain.display()))?;
+            .accept("bands", k, n, &bases.join("bands.txt"))
+            .map_err(|e| format!("{}/bands.txt: {e}", bases.display()))?;
     }
     Ok(jobs)
 }
@@ -724,11 +730,23 @@ pub fn check(root: &Root, jobs: usize) -> Result<bool, Failure> {
     if kinds.is_empty() {
         return Err(Failure(format!("no bundle under {}", root.path.display())));
     }
+    // The bases tree is the repository's; the plain tree is checked when
+    // present, from a release or rebuilt by posum bundle plain.
+    let trees: Vec<Tree> = if root.tree(Tree::Plain).is_dir() {
+        Tree::BOTH.to_vec()
+    } else {
+        vec![Tree::Bases]
+    };
+    let scope_name = if trees.len() == 2 {
+        "both trees"
+    } else {
+        "bases tree"
+    };
 
     let report = Report::default();
     let mut work = Vec::new();
     for kind in &kinds {
-        match check_bundle(root, kind) {
+        match check_bundle(root, kind, &trees) {
             Ok(jobs) => work.push((kind, jobs)),
             Err(problem) => report.fail(problem),
         }
@@ -760,10 +778,7 @@ pub fn check(root: &Root, jobs: usize) -> Result<bool, Failure> {
             .iter()
             .any(|p| p.contains(&format!("/{name}/")) || p.contains(&format!("{name}:")));
         if !failed {
-            println!(
-                "ok    {name}: {} witness files, both trees",
-                jobs.len() / 2 * 2
-            );
+            println!("ok    {name}: {} witness files, {scope_name}", jobs.len());
         }
     }
     for problem in &problems {

@@ -32,8 +32,11 @@ usage:
   posum decode <k> <n> <cycle.bases>    bases to plain list, on stdout
   posum bundle add [--island] [--root <dir>] <run-dir>...
                                         add found witnesses to their bundles
+  posum bundle plain [--root <dir>] [--jobs <j>]
+                                        rebuild witness/plain/ from witness/bases/
   posum check [--root <dir>] [--jobs <j>]
-                                        check every bundle, both trees, with
+                                        check every bundle of the bases tree,
+                                        and of the plain tree if present, with
                                         both independent verifiers
 
 search options:
@@ -93,6 +96,7 @@ fn run(arguments: &[String]) -> Result<ExitCode, Failure> {
         ["decode", k, n, path] => decode(&graph(k, n)?, Path::new(path)),
         ["search", rest @ ..] => search_command(rest),
         ["bundle", "add", rest @ ..] => bundle_add(rest),
+        ["bundle", "plain", rest @ ..] => bundle_plain(rest),
         ["check", rest @ ..] => check_command(rest),
         ["sweep", rest @ ..] => sweep::command(rest),
         _ => Err(Failure(format!(
@@ -191,6 +195,29 @@ fn bundle_add(words: &[&str]) -> Result<ExitCode, Failure> {
     for kind in &kinds {
         bundle::refresh(&root, kind)?;
     }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn bundle_plain(words: &[&str]) -> Result<ExitCode, Failure> {
+    let mut root = PathBuf::from("witness");
+    let mut jobs = std::thread::available_parallelism().map_or(1, std::num::NonZero::get);
+    let mut rest = words.iter();
+    while let Some(&word) = rest.next() {
+        let mut value = |name: &str| {
+            rest.next()
+                .copied()
+                .ok_or_else(|| Failure(format!("{name} needs a value")))
+        };
+        match word {
+            "--root" => root = PathBuf::from(value("--root")?),
+            "--jobs" => {
+                jobs = usize::try_from(integer(value("--jobs")?, "jobs")?)
+                    .map_err(|_| Failure("too many jobs".into()))?;
+            }
+            _ => return Err(Failure(format!("unknown argument {word}"))),
+        }
+    }
+    println!("{}", bundle::plain(&bundle::Root { path: root }, jobs)?);
     Ok(ExitCode::SUCCESS)
 }
 

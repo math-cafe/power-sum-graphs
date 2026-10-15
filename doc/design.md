@@ -559,6 +559,24 @@ plain xz against the estimated bases size:
 - In the manifest, an offloaded file has a `url` next to its `sha256`;
   `posum bundle` downloads and checks it. Integrity never depends on the host.
 
+**Superseded (2026-10-15): Git holds the bases, Zenodo everything.** Measured
+on the 1.0 witnesses: the plain trees weigh 632 MB under xz, 596 MB of it the
+`k = 5` island; the whole bases tree 53 MB. The rule above is replaced by a
+simpler one:
+
+- **Git holds `witness/bases/` alone**, about 55 MB. A bases file holds the
+  whole cycle and both verifiers read it, so every claim, `n_min(6)`
+  included, checks right after a clone.
+- **`witness/plain/` is derived**: `posum bundle plain` rebuilds it from the
+  bases tree, byte for byte the files `posum bundle add` writes.
+- **Each release deposits both trees on Zenodo**, under its DOI, and the
+  plain tree also as a release asset.
+- Manifests carry **no `url`** and there is no `[archive]` table: nothing is
+  fetched by posum, and manifests need not name a DOI that only exists once
+  the release that contains them is made. Open question 8 disappears.
+- To read a cycle in plain text from a clone: `posum decode`, or the awk
+  decoder in `contrib/awk/`.
+
 **Rejected: Google Drive.** Considered for the large files and dropped: no DOI,
 tied to a personal account, links that break when a file moves, download quotas
 on popular large files, and no link to a repository version.
@@ -656,5 +674,5 @@ over: MIT OR Apache-2.0 for code, CC0 for witnesses.
 6. CI cost of verifying the larger witnesses (Lean's own CI is separate, after
    1.0).
 7. ~~Regenerating a whole island~~ **decided** (section 5.3): `posum sweep`.
-8. Offloaded files (`url` in a manifest): `posum check` reads them but does not
-   fetch them yet, and reports a missing file as a failure.
+8. ~~Offloaded files~~ **moot** (section 6.5): Git holds the bases tree, the
+   release and Zenodo the plain one; nothing is fetched.

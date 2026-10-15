@@ -186,6 +186,12 @@ same bundle exists in both under the same name; the two copies differ only in
 the encoding of their cycle files. Manifests, provenance files, `bands.txt` and
 `README.md` MUST be byte-identical in both trees.
 
+The repository holds `witness/bases/` alone. `witness/plain/` is derived from
+it — `posum bundle plain` rebuilds it, decoding every bases file — and is
+distributed with each release, in its Zenodo deposit with the bases tree. A
+bases file holds the whole cycle, so nothing is lost: every claim can be
+checked from a clone.
+
 ### 7.2 Value bundles
 
 Directory name `k<k>-n<n>`, for example `k6-n15748961`.
@@ -264,9 +270,6 @@ bases = { file = "<sha8>.bases.xz" }
 provenance = "<sha8>.provenance.toml"
 ```
 
-`plain` and `bases` MAY carry a `url`, after `file`, when the file is hosted
-outside Git: `{ file = "...", url = "https://..." }`. A file with a `url` is
-fetched and then checked like any other; the `url` never replaces the check.
 
 ### 8.2 Island bundle manifest
 
@@ -286,14 +289,7 @@ witnesses = [
 inline table per line, in increasing order of `n` and then of identity. Every
 `n` of the island MUST appear at least once, and exactly one witness per `n`
 MUST carry `reference = true`. The files of each witness are, by rule,
-`n<n>/<sha8>.txt.xz` (or `.bases.xz`) and `n<n>/<sha8>.provenance.toml`; a
-`url`, when needed, applies to an archive of the whole tree and is given in a
-top-level `archive` table:
-
-```toml
-[archive]
-plain = { file = "k5-n246877-248831-plain.tar", url = "https://...", sha256 = "<sha256>" }
-```
+`n<n>/<sha8>.txt.xz` (or `.bases.xz`) and `n<n>/<sha8>.provenance.toml`.
 
 ### 8.3 Canonical serialisation
 
@@ -307,9 +303,9 @@ serialised exactly as follows:
 4. integers in decimal (section 1);
 5. arrays of strings and integers on one line: `["a", "b"]`, `[1, 2]`;
 6. inline tables with one space inside the braces and after each comma:
-   `{ file = "a", url = "b" }`;
-7. exactly one empty line before each table header (`[bands]`, `[[witness]]`,
-   `[archive]`), none elsewhere; the island `witnesses` array opens with
+   `{ n = 9641, id = "a", reference = true }`;
+7. exactly one empty line before each table header (`[bands]`, `[[witness]]`),
+   none elsewhere; the island `witnesses` array opens with
    `witnesses = [` on its line, one inline table per line indented by two
    spaces and followed by a comma, and closes with `]` alone;
 8. no comment, no trailing space, final line feed.
@@ -385,18 +381,20 @@ network.
 
 ### 10.2 posum check
 
-For every bundle, in both trees, `posum check` MUST:
+For every bundle of `witness/bases/`, and of `witness/plain/` when that tree
+is present (from a release, or rebuilt by `posum bundle plain`), `posum check`
+MUST:
 
 1. re-serialise the manifest and compare it byte for byte (section 8.3);
 2. check that the directory name agrees with `k`, `n` or `island`;
 3. for each witness, decompress the cycle file, have both verifiers accept it,
-   and compare its identity with the manifest's `id`;
+   and compare its identity with the manifest's `id` (for a bases file, the
+   identity of the plain list it decodes to);
 4. if `minimal` is claimed, check the SHA-256 and the count of `bands.txt` and
    have both verifiers accept it;
 5. check every provenance file against section 9;
-6. check that the two trees agree: same file names, byte-identical manifests,
-   provenance files, `bands.txt` and `README.md`, and every bases file decoding
-   to the plain file of the same identity.
+6. when both trees are present, check that they agree: same file names,
+   byte-identical manifests, provenance files, `bands.txt` and `README.md`.
 
 ---
 

@@ -525,6 +525,141 @@ fn readme_island(k: u32, inf: u128, sup: u128, values: usize, count: usize) -> S
     )
 }
 
+/// Every file of a directory tree, as paths relative to it.
+fn files(dir: &Path) -> Result<Vec<PathBuf>, Failure> {
+    let mut out = Vec::new();
+    let mut stack = vec![dir.to_path_buf()];
+    while let Some(current) = stack.pop() {
+        for entry in
+            fs::read_dir(&current).map_err(|e| Failure(format!("{}: {e}", current.display())))?
+        {
+            let path = entry.map_err(|e| Failure(e.to_string()))?.path();
+            if path.is_dir() {
+                stack.push(path);
+            } else {
+                out.push(path.strip_prefix(dir).expect("under dir").to_path_buf());
+            }
+        }
+    }
+    out.sort();
+    Ok(out)
+}
+
+/// Rebuilds `witness/plain/` from `witness/bases/`, section 7.1: every
+/// manifest, README, bands and provenance file copied byte for byte, every
+/// bases file decoded, checked against its identity and compressed. A plain
+/// file already there is kept when it decodes to the right identity.
+pub fn plain(root: &Root, jobs: usize) -> Result<String, Failure> {
+    let bases = root.tree(Tree::Bases);
+    let mut work = Vec::new();
+    let mut copied = 0usize;
+    for entry in fs::read_dir(&bases).map_err(|e| Failure(format!("{}: {e}", bases.display())))? {
+        let name = entry
+            .map_err(|e| Failure(e.to_string()))?
+            .file_name()
+            .to_string_lossy()
+            .into_owned();
+        let kind = Kind::parse(&name)
+            .ok_or_else(|| Failure(format!("{}: {name} is not a bundle", bases.display())))?;
+        let (from, to) = (
+            root.bundle(Tree::Bases, &kind),
+            root.bundle(Tree::Plain, &kind),
+        );
+        for relative in files(&from)? {
+            let source = from.join(&relative);
+            let name = relative.to_string_lossy().into_owned();
+            if let Some(stem) = name.strip_suffix(".bases.xz") {
+                let n = match kind {
+                    Kind::Value { n, .. } => n,
+                    Kind::Island { .. } => relative
+                        .parent()
+                        .and_then(|p| p.to_str()?.strip_prefix('n')?.parse().ok())
+                        .ok_or_else(|| Failure(format!("{}: not under n<n>/", source.display())))?,
+                };
+                let sha8 = Path::new(stem)
+                    .file_name()
+                    .expect("a file")
+                    .to_string_lossy()
+                    .into_owned();
+                let provenance = source.with_file_name(format!("{sha8}.provenance.toml"));
+                let (id, _, _) = provenance_header(&provenance)?;
+                work.push((kind.k(), n, id, source, to.join(format!("{stem}.txt.xz"))));
+            } else {
+                let target = to.join(&relative);
+                fs::create_dir_all(target.parent().expect("a parent"))
+                    .map_err(|e| Failure(e.to_string()))?;
+                let bytes = read(&source)?;
+                if fs::read(&target).ok().as_deref() != Some(&bytes[..]) {
+                    write(&target, &bytes)?;
+                    copied += 1;
+                }
+            }
+        }
+    }
+
+    let next = std::sync::atomic::AtomicUsize::new(0);
+    let built = std::sync::atomic::AtomicUsize::new(0);
+    let failure = std::sync::Mutex::new(None);
+    std::thread::scope(|scope| {
+        for _ in 0..jobs.max(1) {
+            scope.spawn(|| {
+                loop {
+                    let index = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    let Some((k, n, id, source, target)) = work.get(index) else {
+                        break;
+                    };
+                    match plain_one(*k, *n, id, source, target) {
+                        Ok(true) => {
+                            built.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                        }
+                        Ok(false) => {}
+                        Err(e) => {
+                            failure.lock().expect("lock").get_or_insert(e);
+                            break;
+                        }
+                    }
+                }
+            });
+        }
+    });
+    if let Some(e) = failure.into_inner().expect("lock") {
+        return Err(e);
+    }
+    let built = built.into_inner();
+    Ok(format!(
+        "{} plain cycle files: {built} rebuilt, {} already right; {copied} other files copied",
+        work.len(),
+        work.len() - built
+    ))
+}
+
+/// One plain file from its bases file; `Ok(false)` when it was already right.
+fn plain_one(k: u32, n: u128, id: &str, source: &Path, target: &Path) -> Result<bool, Failure> {
+    if target.is_file() && decompress(target).is_ok_and(|bytes| posum_lkh::sha256_hex(&bytes) == id)
+    {
+        return Ok(false);
+    }
+    let graph = Graph::new(k, n)?;
+    let encoded = format::read_bases(&decompress(source)?[..])
+        .map_err(|e| Failure(format!("{}: {e}", source.display())))?;
+    let cycle = bases::decode(&graph, &encoded)
+        .map_err(|e| Failure(format!("{}: {e}", source.display())))?;
+    let mut text = Vec::new();
+    format::write_plain(&mut text, &cycle)?;
+    if posum_lkh::sha256_hex(&text) != id {
+        return Err(Failure(format!(
+            "{}: decodes to another identity than {id}",
+            source.display()
+        )));
+    }
+    fs::create_dir_all(target.parent().expect("a parent")).map_err(|e| Failure(e.to_string()))?;
+    let temporary = target.with_extension("new");
+    write(&temporary, &text)?;
+    compress(&temporary, target)?;
+    fs::remove_file(&temporary).map_err(|e| Failure(e.to_string()))?;
+    Ok(true)
+}
+
 /// Writes `bytes` to a fresh file under `dir`, for the verifiers.
 pub fn scratch(dir: &Path, name: &str, bytes: &[u8]) -> Result<PathBuf, Failure> {
     let path = dir.join(name);
