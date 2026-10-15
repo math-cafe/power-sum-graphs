@@ -128,5 +128,12 @@ SHA-256 and builds it on your machine.
 ## Licences and citation
 
 Code: MIT or Apache-2.0, at your option ([LICENSE](LICENSE)). Witnesses:
-public domain, CC0 1.0 ([witness/LICENSE](witness/LICENSE)). To cite, see
-[CITATION.cff](CITATION.cff).
+public domain, CC0 1.0 ([witness/LICENSE](witness/LICENSE)).
+
+Release 1.0.0 — the source and both witness trees — is archived on Zenodo:
+[doi:10.5281/zenodo.23403537](https://doi.org/10.5281/zenodo.23403537). To
+cite it, see [CITATION.cff](CITATION.cff):
+
+> Nouvier, F. (2026). *power-sum-graphs 1.0.0: Hamiltonian cycles of
+> power-sum graphs, with certificates* (Version 1.0.0). Zenodo.
+> https://doi.org/10.5281/zenodo.23403537

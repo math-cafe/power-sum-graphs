@@ -1,6 +1,8 @@
 # Changelog
 
-## 1.0.0 — unreleased
+## 1.0.0 — 2026-10-15
+
+Archived on Zenodo: [doi:10.5281/zenodo.23403537](https://doi.org/10.5281/zenodo.23403537).
 
 First release of this repository, rebuilt from the lab notebook
 [math-cafe/powercycle](https://github.com/math-cafe/powercycle), which ended
