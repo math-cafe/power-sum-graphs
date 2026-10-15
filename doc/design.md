@@ -1,7 +1,8 @@
 # power-sum-graphs 1.0 — design note
 
-Status: draft, to be discussed before any code is written. Decisions taken so
-far are marked **decided**; the rest are proposals or open questions.
+Status: implemented for release 1.0. Decisions are marked **decided**, with
+their date when they changed an earlier one; what remains open is listed in
+section 10. The record of how the design was reached is kept as written.
 
 ---
 
@@ -43,7 +44,7 @@ repositories and with a common shell alias for `ps aux | grep`, and PΣG with it
 | `n_min(5) = 246877`, `n_min(6) = 15748961` | new, as far as is known | — |
 | `n_min(7) >= 587761723` | lower bound | — |
 | admissible islands `I_k = { n : delta(G_k(n)) >= 2 }` for `k = 2..12` | characterisation and `O(k)` computation | — |
-| `G_2(31)` is not Hamiltonian | known (B. Dobbelaere, A071984); cited, not certified in 1.0 (section 6.3c) | — |
+| `G_2(31)` is not Hamiltonian | classical; ruled out by hand as noted by B. Dobbelaere in A071984 (2018); cited, not certified in 1.0 (section 6.3c) | — |
 | every `n` of the finite islands of `k = 4` and `k = 5` is Hamiltonian | evidence for the conjecture below | — |
 
 **Conjecture:** for `k >= 3`, `G_k(n)` is Hamiltonian exactly when
@@ -501,7 +502,8 @@ evidence the lab notebook already documents.
 certify `n_min(2) = 32`: `G_2(31)` has every degree at least two and is not
 Hamiltonian for a reason degrees do not see. The `k2-n32` bundle therefore
 claims `hamiltonian` alone, and its README cites the minimality as a known
-result (B. Dobbelaere, OEIS A071984), not one certified here. An explicit
+result (classical; B. Dobbelaere notes in OEIS A071984 how `n = 31` is ruled
+out), not one certified here. An explicit
 certificate for `G_2(31)`, then its Lean proof, are for after 1.0.
 
 What this removes: the migration of about 2 300 collected cycles and six

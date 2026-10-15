@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use these results or this software, please cite them as below."
+title: "power-sum-graphs: Hamiltonian cycles of power-sum graphs, with certificates"
+type: software
+authors:
+  - family-names: Nouvier
+    given-names: Frédéric
+version: 1.0.0
+# date-released and doi are set when the release is made and archived on Zenodo.
+repository-code: "https://github.com/math-cafe/power-sum-graphs"
+license:
+  - MIT
+  - Apache-2.0
+  - CC0-1.0
+keywords:
+  - power-sum graph
+  - square-sum problem
+  - Hamiltonian cycle
+  - OEIS A115418
+  - LKH
+abstract: >-
+  The least n for which the integers 1..n can be arranged in a circle with
+  every two neighbours summing to a perfect k-th power is 473, 9641, 246877
+  and 15748961 for k = 3, 4, 5, 6, each with a Hamiltonian cycle and a
+  certificate ruling out every smaller n, and at least 587761723 for k = 7.
+  Every n of the finite admissible islands of k = 4 and k = 5 is shown
+  Hamiltonian. The software, posum, finds the cycles with LKH-3; two
+  independent verifiers check every claim.

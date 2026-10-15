@@ -1,0 +1,25 @@
+# Licensing
+
+## Software
+
+All source code in this repository is dual-licensed under either
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE)), or
+- MIT license ([LICENSE-MIT](LICENSE-MIT))
+
+at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally
+submitted for inclusion in this repository, as defined in the Apache-2.0
+license, shall be dual-licensed as above, without any additional terms or
+conditions.
+
+## Scientific results
+
+The contents of `witness/` are **data, not software**. They are released into
+the public domain under CC0 1.0 Universal ([witness/LICENSE](witness/LICENSE)).
+
+A Hamiltonian cycle of a power-sum graph is a mathematical fact. Placing the
+witnesses under CC0 ensures that anyone may reproduce, cite, redistribute or
+build on them without attribution requirements or licence compatibility
+concerns.

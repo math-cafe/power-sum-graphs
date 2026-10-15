@@ -160,6 +160,9 @@ fn decode(graph: &Graph, path: &Path) -> Result<ExitCode, Failure> {
     Ok(ExitCode::SUCCESS)
 }
 
+/// The outcome of adding one run directory, filled in by a worker.
+type Added = Option<Result<(bundle::Kind, String), Failure>>;
+
 fn bundle_add(words: &[&str]) -> Result<ExitCode, Failure> {
     let mut root = PathBuf::from("witness");
     let mut island = false;
@@ -184,9 +187,30 @@ fn bundle_add(words: &[&str]) -> Result<ExitCode, Failure> {
         ));
     }
     let root = bundle::Root { path: root };
+    // Each witness is compressed twice with xz -9e: run them in parallel,
+    // then report in the order given.
+    let jobs = std::thread::available_parallelism().map_or(1, std::num::NonZero::get);
+    let next = std::sync::atomic::AtomicUsize::new(0);
+    let results: Vec<std::sync::Mutex<Added>> =
+        runs.iter().map(|_| std::sync::Mutex::new(None)).collect();
+    std::thread::scope(|scope| {
+        for _ in 0..jobs.min(runs.len()) {
+            scope.spawn(|| {
+                loop {
+                    let index = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    let Some(run) = runs.get(index) else { break };
+                    let result = bundle::add(&root, run, island);
+                    *results[index].lock().expect("result lock") = Some(result);
+                }
+            });
+        }
+    });
     let mut kinds = Vec::new();
-    for run in &runs {
-        let (kind, message) = bundle::add(&root, run, island)?;
+    for result in results {
+        let (kind, message) = result
+            .into_inner()
+            .expect("result lock")
+            .expect("every run done")?;
         println!("{message}");
         if !kinds.contains(&kind) {
             kinds.push(kind);

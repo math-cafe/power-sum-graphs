@@ -5,3 +5,4 @@ __pycache__/
 # Derived from witness/bases/ by posum bundle plain, and distributed with
 # each release on Zenodo (doc/design.md section 6.5).
 /witness/plain/
+/witness-regenerated/
