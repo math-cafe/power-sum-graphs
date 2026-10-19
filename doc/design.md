@@ -233,6 +233,12 @@ above half of it. This is the guard the lab notebook recorded as missing since
 August; at `k = 7` it avoids finding out after six hours that the machine is
 swapping.
 
+**Measured at `k = 7` (2026-10-19).** `posum search 7 587761723` propagated
+in 138 s within its 17.6 GB estimate, found no obstruction, left 297 314 988
+nodes after contraction, and refused LKH on an estimate of 190.1 GB against
+39.9 GB available, before writing anything: the guard worked as intended. The
+figures are in the lab notebook, `doc/en/performance.md`.
+
 **`--force` overrides the refusal (decided).** The estimate is arithmetic, not
 a measurement — the `k = 7` preflight was measured at about 1.6 to 1.8 times
 the graph estimate — and the user may know better: a machine with large swap,
