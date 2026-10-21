@@ -1,0 +1,11 @@
+format = "posum-bundle 1"
+k = 6
+n = 30039769
+claims = ["hamiltonian"]
+reference = "a7aa7317ddc6a3d38164b0d0372c0ab862eab57b3132f7a514a0e262491d4eb6"
+
+[[witness]]
+id = "a7aa7317ddc6a3d38164b0d0372c0ab862eab57b3132f7a514a0e262491d4eb6"
+plain = { file = "a7aa7317.txt.xz" }
+bases = { file = "a7aa7317.bases.xz" }
+provenance = "a7aa7317.provenance.toml"

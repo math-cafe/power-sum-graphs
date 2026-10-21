@@ -11,7 +11,8 @@
 #   --jobs J     searches at once in the island sweeps (default: all cores)
 #   --lkh PATH   LKH binary with its LKH.toml (default: lkh/bin/LKH, built by
 #                scripts/build-lkh.sh if missing)
-#   --no-k6      skip G_6(15748961), which needs about 6 GB and 7 minutes
+#   --no-k6      skip G_6(15748961) and G_6(30039769), which need about 6 and
+#                15 GB, and 7 and about 80 minutes
 #
 # The script builds posum and the Rust verifier, builds LKH if needed, runs the
 # island sweeps and the single searches, files every witness into its bundle,
@@ -20,7 +21,8 @@
 #
 # It can be interrupted and run again: sweeps and searches resume where they
 # stopped. On the development machine (16 cores) the whole run takes about
-# 1 h 20, nearly all of it the k = 5 island.
+# 5 h: 1 h 20 for the k = 5 island, 3 h for the k = 3 range, 20 min for the
+# k = 4 range, 80 min for G_6(30039769).
 #
 # Identical identities are not expected everywhere: scripts/build-lkh.sh builds
 # with -march=native, so another processor gives another LKH binary, which may
@@ -68,11 +70,19 @@ export POSUM_LKH="$lkh"
 
 # Every n with a value bundle; n_min(k) for k = 2..6, then the other values.
 singles=("2 32" "3 473" "4 9641" "5 246877" "5 490463" "5 600000" "5 2000000")
-[ "$with_k6" -eq 1 ] && singles+=("6 15748961")
+[ "$with_k6" -eq 1 ] && singles+=("6 15748961" "6 30039769")
+# Range bundles (since 1.1.0): k inf sup.
+ranges=("3 473 10000" "4 18193 30000")
 
 step "sweeping the finite islands of k = 4 and k = 5"
 for k in 4 5; do
     "$posum" sweep "$k" island --jobs "$jobs" --run-root "$runs"
+done
+
+step "sweeping the ranges"
+for r in "${ranges[@]}"; do
+    read -r k inf sup <<<"$r"
+    "$posum" sweep "$k" "$inf" "$sup" --jobs "$jobs" --run-root "$runs"
 done
 
 step "single searches"
@@ -96,6 +106,12 @@ for k in 4 5; do
     done < <("$posum" islands "$k" | grep -v '\.\.\.' | tr -d '-' | awk '{print $1, $2}')
 done
 "$posum" bundle add --island --root "$root" "${island_runs[@]}" | tail -1
+for r in "${ranges[@]}"; do
+    read -r k inf sup <<<"$r"
+    range_runs=()
+    for ((n = inf; n <= sup; n++)); do range_runs+=("$runs/k$k-n$n"); done
+    "$posum" bundle add --range "$inf" "$sup" --root "$root" "${range_runs[@]}" | tail -1
+done
 value_runs=()
 for kn in "${singles[@]}"; do
     read -r k n <<<"$kn"

@@ -69,7 +69,7 @@ checksum = "ce5d3ddc6d3fa000eb1536d85e147bfe31aacaba692ed6a876f95cb7c855be78"
 
 [[package]]
 name = "posum-cli"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "posum-core",
  "posum-lkh",
@@ -78,11 +78,11 @@ dependencies = [
 
 [[package]]
 name = "posum-core"
-version = "1.0.0"
+version = "1.1.0"
 
 [[package]]
 name = "posum-lkh"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "posum-core",
  "sha2",

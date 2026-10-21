@@ -37,7 +37,16 @@ unbounded one: `9641 - 9999` then `18193 - ...` at `k = 4`, `246877 - 248831`
 then `490463 - ...` at `k = 5` (`posum islands <k>`). Every `n` of the finite
 islands of `k = 4` and `k = 5` is Hamiltonian, witnesses in
 [`k4-n9641-9999`](witness/bases/k4-n9641-9999/) and
-[`k5-n246877-248831`](witness/bases/k5-n246877-248831/), which supports:
+[`k5-n246877-248831`](witness/bases/k5-n246877-248831/). Since 1.1.0, range
+bundles add runs of consecutive values at the start of the unbounded interval:
+every `n` from 473 to 10000 at `k = 3`
+([`k3-r473-10000`](witness/bases/k3-r473-10000/)), every `n` from 18193 to
+30000 at `k = 4` ([`k4-r18193-30000`](witness/bases/k4-r18193-30000/)), and
+`n = 30039769`, the start of the unbounded interval at `k = 6`
+([`k6-n30039769`](witness/bases/k6-n30039769/)). So Hamiltonicity is not
+monotone in `n`: at `k = 4`, `5` and `6` it holds in the first island (at its
+first value for `k = 6`), fails on the gap that follows, and holds again. All
+of this supports:
 
 > **Conjecture.** For `k >= 3`, `G_k(n)` is Hamiltonian exactly when every
 > vertex has degree at least two.
@@ -76,7 +85,7 @@ Every witness was found by posum with LKH-3, and its provenance says how:
 binary, seed, segments, time. To find them all again:
 
 ```console
-scripts/regenerate.sh            # about 1 h 20 on 16 cores, most of it the k = 5 island; --no-k6 to skip G_6
+scripts/regenerate.sh            # about 5 h on 16 cores; --no-k6 to skip the two G_6
 ```
 
 It builds posum and LKH, sweeps the islands, runs the single searches, files
@@ -123,7 +132,7 @@ SHA-256 and builds it on your machine.
   `n_min(5)` and `n_min(6)`, measurements, failures, research notes — is the
   lab notebook [math-cafe/powercycle](https://github.com/math-cafe/powercycle),
   kept public as provenance and archived on Software Heritage
-  ([swh:1:snp:8586949f0bcc2c1b722394d9d481d024f2cfda88](https://archive.softwareheritage.org/swh:1:snp:8586949f0bcc2c1b722394d9d481d024f2cfda88)).
+  ([swh:1:snp:3ffd408d237801defd00401bfb20b55b1677ffa9](https://archive.softwareheritage.org/swh:1:snp:3ffd408d237801defd00401bfb20b55b1677ffa9)).
   Its witnesses are valid and independently
   verified; release 1.0 publishes only witnesses found again by posum.
 
@@ -135,7 +144,8 @@ public domain, CC0 1.0 ([witness/LICENSE](witness/LICENSE)).
 Release 1.0.0 — the source and both witness trees — is archived on Zenodo:
 [doi:10.5281/zenodo.23403537](https://doi.org/10.5281/zenodo.23403537); the
 DOI [10.5281/zenodo.23403536](https://doi.org/10.5281/zenodo.23403536) always
-points to the latest version. To cite this one, see [CITATION.cff](CITATION.cff):
+points to the latest version. Release 1.1.0 will be deposited there as a new
+version. To cite, see [CITATION.cff](CITATION.cff); for 1.0.0:
 
 > Nouvier, F. (2026). *power-sum-graphs 1.0.0: Hamiltonian cycles of
 > power-sum graphs, with certificates* (Version 1.0.0). Zenodo.

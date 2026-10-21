@@ -6,15 +6,18 @@ authors:
   - family-names: Nouvier
     given-names: Frédéric
     orcid: "https://orcid.org/0009-0000-7940-1381"
-version: 1.0.0
-date-released: 2026-10-15
-doi: 10.5281/zenodo.23403537
+version: 1.1.0
+date-released: 2026-10-22
+doi: 10.5281/zenodo.23403536
 identifiers:
+  - type: doi
+    value: 10.5281/zenodo.23403536
+    description: "All versions on Zenodo; the DOI of release 1.1.0 is added once deposited"
   - type: doi
     value: 10.5281/zenodo.23403537
     description: "Release 1.0.0 on Zenodo: source and both witness trees"
   - type: swh
-    value: "swh:1:snp:8586949f0bcc2c1b722394d9d481d024f2cfda88"
+    value: "swh:1:snp:3ffd408d237801defd00401bfb20b55b1677ffa9"
     description: "The lab notebook math-cafe/powercycle on Software Heritage"
 repository-code: "https://github.com/math-cafe/power-sum-graphs"
 license:
