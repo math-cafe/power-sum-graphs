@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased (1.1.0)
+
+- Range bundles, `k<k>-r<inf>-<sup>`: every `n` of an interval of consecutive
+  admissible values that is not a whole island (`doc/formats.md` section 7.5,
+  `doc/design.md` section 6.6). `posum bundle add --range <inf> <sup>`;
+  `posum check` enforces the rules, including disjointness.
+
 ## 1.0.0 — 2026-10-15
 
 Archived on Zenodo: [doi:10.5281/zenodo.23403537](https://doi.org/10.5281/zenodo.23403537).

@@ -593,6 +593,29 @@ on popular large files, and no link to a repository version.
 **Rejected: Git LFS.** GitHub's free quota, 1 GB of storage and of monthly
 bandwidth, is too small for these files and their downloads.
 
+### 6.6 Range bundles (decided 2026-10-21, for 1.1.0)
+
+**Why.** The two kinds of bundle cover one value and one whole finite island.
+The evidence for the conjecture now includes long runs of consecutive
+admissible values that are not a whole island: every `n` from 473 to 10000 for
+`k = 3`, from 18193 to 30000 for `k = 4`. One value bundle per `n` would mean
+21 000 directories, each with its own manifest and README.
+
+**What.** A third kind, the range bundle `k<k>-r<inf>-<sup>`, specified in
+`doc/formats.md` section 7.5: the layout and manifest of an island bundle, with
+`range` in place of `island`, for any interval of admissible values inside one
+admissible interval, other than a whole finite island, disjoint from the other
+interval bundles of its `k`. `posum bundle add --range <inf> <sup>` fills it;
+`posum check` enforces the rules.
+
+**Choices.** The letter `r` in the name, so that the name alone gives the kind.
+The format string stays `"posum-bundle 1"`: the value and island kinds are
+unchanged, and a 1.0.0 reader rejects the unknown names rather than misreading
+them. Only posum witnesses, as always (6.3c): the `k = 3` values 473..800,
+first found with the lab's tools, were found again by `posum sweep` before
+entering `k3-r473-10000`. The verifiers read witness files only and do not
+change. A new feature, hence version 1.1.0 and a new Zenodo version.
+
 ---
 
 ## 7. Lean (decided: after 1.0)

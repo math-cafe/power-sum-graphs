@@ -42,6 +42,16 @@ pub enum Kind {
         /// Last `n`.
         sup: u128,
     },
+    /// Every `n` of an interval of admissible values that is not a whole
+    /// finite island, section 7.5.
+    Range {
+        /// The exponent.
+        k: u32,
+        /// First `n`.
+        inf: u128,
+        /// Last `n`.
+        sup: u128,
+    },
 }
 
 impl Kind {
@@ -50,6 +60,7 @@ impl Kind {
         match *self {
             Self::Value { k, n } => format!("k{k}-n{n}"),
             Self::Island { k, inf, sup } => format!("k{k}-n{inf}-{sup}"),
+            Self::Range { k, inf, sup } => format!("k{k}-r{inf}-{sup}"),
         }
     }
 
@@ -60,8 +71,17 @@ impl Kind {
                 .then(|| t.parse().ok())
                 .flatten()
         };
-        let (k, rest) = name.strip_prefix('k')?.split_once("-n")?;
+        let (k, rest) = name.strip_prefix('k')?.split_once('-')?;
         let k = u32::try_from(number(k)?).ok()?;
+        if let Some(rest) = rest.strip_prefix('r') {
+            let (inf, sup) = rest.split_once('-')?;
+            return Some(Self::Range {
+                k,
+                inf: number(inf)?,
+                sup: number(sup)?,
+            });
+        }
+        let rest = rest.strip_prefix('n')?;
         match rest.split_once('-') {
             None => Some(Self::Value {
                 k,
@@ -78,7 +98,7 @@ impl Kind {
     /// The exponent.
     pub fn k(&self) -> u32 {
         match *self {
-            Self::Value { k, .. } | Self::Island { k, .. } => k,
+            Self::Value { k, .. } | Self::Island { k, .. } | Self::Range { k, .. } => k,
         }
     }
 }
@@ -105,7 +125,9 @@ impl Root {
     pub fn witnesses(&self, tree: Tree, kind: &Kind, n: u128) -> PathBuf {
         match kind {
             Kind::Value { .. } => self.bundle(tree, kind),
-            Kind::Island { .. } => self.bundle(tree, kind).join(format!("n{n}")),
+            Kind::Island { .. } | Kind::Range { .. } => {
+                self.bundle(tree, kind).join(format!("n{n}"))
+            }
         }
     }
 
@@ -198,12 +220,52 @@ fn island_of(k: u32, n: u128) -> Result<Island, Failure> {
         })
 }
 
+/// Checks that `inf..=sup` may be a range bundle of `G_k`, section 7.5: every
+/// value admissible, inside one admissible interval, and not exactly a finite
+/// island (that is an island bundle).
+pub fn check_range(k: u32, inf: u128, sup: u128) -> Result<(), String> {
+    if inf > sup {
+        return Err(format!("the range {inf} - {sup} is empty"));
+    }
+    let islands = Chain::new(k).map_err(|e| e.to_string())?.islands();
+    let Some(within) = islands
+        .iter()
+        .find(|i| i.inf <= inf && i.sup.is_none_or(|s| sup <= s))
+    else {
+        return Err(format!(
+            "{inf} - {sup} is not inside one admissible interval of G_{k}"
+        ));
+    };
+    if within.inf == inf && within.sup == Some(sup) {
+        return Err(format!(
+            "{inf} - {sup} is a whole finite island of G_{k}: use an island bundle"
+        ));
+    }
+    Ok(())
+}
+
+/// Where [`add`] puts a witness.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Target {
+    /// The value bundle of its `n`.
+    Value,
+    /// The bundle of the finite island containing its `n`.
+    Island,
+    /// The range bundle `inf..=sup`, which must contain its `n`.
+    Range {
+        /// First `n`.
+        inf: u128,
+        /// Last `n`.
+        sup: u128,
+    },
+}
+
 /// Adds the witness of a run directory to its bundle, in both trees, and
 /// returns the bundle with a message; the caller then rewrites the bundle's
-/// derived files with [`refresh`], once per bundle. With `island`, the
-/// bundle is the one of the finite island containing `n`; otherwise the
-/// value bundle of `n`.
-pub fn add(root: &Root, run_dir: &Path, island: bool) -> Result<(Kind, String), Failure> {
+/// derived files with [`refresh`], once per bundle. `target` chooses the value
+/// bundle of `n`, the bundle of the finite island containing `n`, or a range
+/// bundle containing `n`.
+pub fn add(root: &Root, run_dir: &Path, target: Target) -> Result<(Kind, String), Failure> {
     let provenances: Vec<PathBuf> = fs::read_dir(run_dir)
         .map_err(|e| Failure(format!("{}: {e}", run_dir.display())))?
         .filter_map(Result::ok)
@@ -233,15 +295,26 @@ pub fn add(root: &Root, run_dir: &Path, island: bool) -> Result<(Kind, String), 
     cycle::check_canonical(&graph, &cycle)
         .map_err(|e| Failure(format!("{}: {e}", plain.display())))?;
 
-    let kind = if island {
-        let found = island_of(k, n)?;
-        Kind::Island {
-            k,
-            inf: found.inf,
-            sup: found.sup.expect("a finite island"),
+    let kind = match target {
+        Target::Island => {
+            let found = island_of(k, n)?;
+            Kind::Island {
+                k,
+                inf: found.inf,
+                sup: found.sup.expect("a finite island"),
+            }
         }
-    } else {
-        Kind::Value { k, n }
+        Target::Range { inf, sup } => {
+            check_range(k, inf, sup).map_err(Failure)?;
+            if !(inf..=sup).contains(&n) {
+                return Err(Failure(format!(
+                    "{}: n = {n} is outside the range {inf} - {sup}",
+                    run_dir.display()
+                )));
+            }
+            Kind::Range { k, inf, sup }
+        }
+        Target::Value => Kind::Value { k, n },
     };
 
     let mut added = false;
@@ -390,7 +463,7 @@ pub fn refresh(root: &Root, kind: &Kind) -> Result<(), Failure> {
             }
             readme = readme_value(k, n, minimal.is_some(), &reference, ids.len());
         }
-        Kind::Island { k, inf, sup } => {
+        Kind::Island { k, inf, sup } | Kind::Range { k, inf, sup } => {
             let old_references: Vec<(u128, String)> = old
                 .as_ref()
                 .and_then(|d| match state::get(&d.top, "witnesses") {
@@ -435,13 +508,18 @@ pub fn refresh(root: &Root, kind: &Kind) -> Result<(), Failure> {
                     witnesses.push(Value::Inline(entry));
                 }
             }
+            let island = matches!(kind, Kind::Island { .. });
             top.push((
-                "island".into(),
+                if island { "island" } else { "range" }.into(),
                 Value::Array(vec![Value::Integer(inf), Value::Integer(sup)]),
             ));
             top.push(("claims".into(), strings(&["hamiltonian"])));
             top.push(("witnesses".into(), Value::Array(witnesses)));
-            readme = readme_island(k, inf, sup, values, count);
+            readme = if island {
+                readme_island(k, inf, sup, values, count)
+            } else {
+                readme_range(k, inf, sup, values, count)
+            };
         }
     }
 
@@ -526,6 +604,25 @@ fn readme_island(k: u32, inf: u128, sup: u128, values: usize, count: usize) -> S
     )
 }
 
+fn readme_range(k: u32, inf: u128, sup: u128, values: usize, count: usize) -> String {
+    let size = sup - inf + 1;
+    format!(
+        "# G_{k}(n) for every n of the admissible range {inf} - {sup}\n\n\
+         Every G_{k}(n) with {inf} <= n <= {sup}, {size} consecutive admissible values of\n\
+         G_{k}, has a Hamiltonian cycle. This bundle holds witnesses for {values} of them,\n\
+         {count} in all, one directory `n<n>/` per value, each witness with its\n\
+         provenance; `manifest.toml` marks one reference per value.\n\n\
+         Check a witness with either independent verifier of the repository, after\n\
+         decompressing it:\n\n\
+         ```console\n\
+         xz -dk n<n>/<sha8>.txt.xz\n\
+         verify/rust/target/release/posum-verify plain {k} <n> n<n>/<sha8>.txt\n\
+         python3 verify/python/posum_verify.py plain {k} <n> n<n>/<sha8>.txt\n\
+         ```\n\n\
+         The format of every file is specified in `doc/formats.md`.\n"
+    )
+}
+
 /// Every file of a directory tree, as paths relative to it.
 fn files(dir: &Path) -> Result<Vec<PathBuf>, Failure> {
     let mut out = Vec::new();
@@ -572,7 +669,7 @@ pub fn plain(root: &Root, jobs: usize) -> Result<String, Failure> {
             if let Some(stem) = name.strip_suffix(".bases.xz") {
                 let n = match kind {
                     Kind::Value { n, .. } => n,
-                    Kind::Island { .. } => relative
+                    Kind::Island { .. } | Kind::Range { .. } => relative
                         .parent()
                         .and_then(|p| p.to_str()?.strip_prefix('n')?.parse().ok())
                         .ok_or_else(|| Failure(format!("{}: not under n<n>/", source.display())))?,
@@ -705,11 +802,38 @@ mod tests {
                 inf: 246_877,
                 sup: 248_831,
             },
+            Kind::Range {
+                k: 3,
+                inf: 473,
+                sup: 10_000,
+            },
         ] {
             assert_eq!(Kind::parse(&kind.name()), Some(kind));
         }
         assert_eq!(Kind::parse("k6-n015748961"), None);
         assert_eq!(Kind::parse("k6n15748961"), None);
         assert_eq!(Kind::parse("engines"), None);
+        assert_eq!(Kind::parse("k3-r473"), None);
+        assert_eq!(Kind::parse("k3-x473-800"), None);
+    }
+
+    #[test]
+    fn island_readme_unchanged() {
+        // 1.1.0 must not change the README of a bundle published in 1.0.0.
+        let published = include_str!("../../../witness/bases/k4-n9641-9999/README.md");
+        assert_eq!(super::readme_island(4, 9641, 9999, 359, 359), published);
+    }
+
+    #[test]
+    fn ranges() {
+        use super::check_range;
+        // k = 3: the mainland starts at 473; k = 4: island [9641, 9999], mainland from 18193.
+        assert!(check_range(3, 473, 10_000).is_ok());
+        assert!(check_range(3, 472, 10_000).is_err());
+        assert!(check_range(4, 9641, 9_998).is_ok());
+        assert!(check_range(4, 9641, 9_999).is_err(), "a whole island");
+        assert!(check_range(4, 9_999, 18_193).is_err(), "crosses a gap");
+        assert!(check_range(4, 18_193, 30_000).is_ok());
+        assert!(check_range(4, 30_000, 18_193).is_err(), "empty");
     }
 }

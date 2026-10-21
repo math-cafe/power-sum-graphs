@@ -30,7 +30,7 @@ usage:
   posum sweep <k> island [options]      every n of every finite island of G_k
   posum encode <k> <n> <cycle.txt>      plain list to bases, on stdout
   posum decode <k> <n> <cycle.bases>    bases to plain list, on stdout
-  posum bundle add [--island] [--root <dir>] <run-dir>...
+  posum bundle add [--island | --range <inf> <sup>] [--root <dir>] <run-dir>...
                                         add found witnesses to their bundles
   posum bundle plain [--root <dir>] [--jobs <j>]
                                         rebuild witness/plain/ from witness/bases/
@@ -54,7 +54,8 @@ sweep options, besides --time-limit (per n), --seed, --force, --lkh, --nice:
   Run the same sweep again to resume it; the table is <dir>/sweep.tsv.
 
 bundle and check use --root witness by default; --island puts a witness in
-the bundle of the finite admissible island containing n.
+the bundle of the finite admissible island containing n, --range in the range
+bundle k<k>-r<inf>-<sup> of consecutive admissible values.
 
 exit codes: 0 done (search: cycle found and checked), 1 error,
             2 search: time limit reached, resumable with --resume";
@@ -165,12 +166,22 @@ type Added = Option<Result<(bundle::Kind, String), Failure>>;
 
 fn bundle_add(words: &[&str]) -> Result<ExitCode, Failure> {
     let mut root = PathBuf::from("witness");
-    let mut island = false;
+    let mut target = bundle::Target::Value;
     let mut runs = Vec::new();
     let mut rest = words.iter();
     while let Some(&word) = rest.next() {
         match word {
-            "--island" => island = true,
+            "--island" => target = bundle::Target::Island,
+            "--range" => {
+                let mut bound = |name| {
+                    rest.next()
+                        .ok_or_else(|| Failure("--range needs <inf> <sup>".into()))
+                        .and_then(|t| integer(t, name))
+                };
+                let inf = bound("inf")?;
+                let sup = bound("sup")?;
+                target = bundle::Target::Range { inf, sup };
+            }
             "--root" => {
                 root = PathBuf::from(
                     rest.next()
@@ -183,7 +194,8 @@ fn bundle_add(words: &[&str]) -> Result<ExitCode, Failure> {
     }
     if runs.is_empty() {
         return Err(Failure(
-            "usage: posum bundle add [--island] [--root <dir>] <run-dir>...".into(),
+            "usage: posum bundle add [--island | --range <inf> <sup>] [--root <dir>] <run-dir>..."
+                .into(),
         ));
     }
     let root = bundle::Root { path: root };
@@ -199,7 +211,7 @@ fn bundle_add(words: &[&str]) -> Result<ExitCode, Failure> {
                 loop {
                     let index = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                     let Some(run) = runs.get(index) else { break };
-                    let result = bundle::add(&root, run, island);
+                    let result = bundle::add(&root, run, target);
                     *results[index].lock().expect("result lock") = Some(result);
                 }
             });

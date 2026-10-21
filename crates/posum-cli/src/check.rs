@@ -419,47 +419,55 @@ fn check_value_manifest(
     Ok(witnesses)
 }
 
-/// Checks an island bundle's manifest; returns its witnesses as `(n, id)`.
-fn check_island_manifest(
+/// Checks an island or range bundle's manifest, sections 8.2 and 8.3;
+/// returns its witnesses as `(n, id)`.
+fn check_interval_manifest(
     document: &Document,
-    k: u32,
-    inf: u128,
-    sup: u128,
+    kind: &Kind,
     bundle: &Path,
 ) -> Result<Vec<(u128, String)>, String> {
     let what = bundle.join("manifest.toml").display().to_string();
+    let (k, inf, sup, key) = match *kind {
+        Kind::Island { k, inf, sup } => (k, inf, sup, "island"),
+        Kind::Range { k, inf, sup } => (k, inf, sup, "range"),
+        Kind::Value { .. } => unreachable!("an interval bundle"),
+    };
     keys(
         &document.top,
         &[
             ("format", "string", true),
             ("k", "integer", true),
-            ("island", "array", true),
+            (key, "array", true),
             ("claims", "array", true),
             ("witnesses", "array", true),
         ],
         &what,
     )?;
     let top = &document.top;
-    let island = Value::Array(vec![Value::Integer(inf), Value::Integer(sup)]);
+    let interval = Value::Array(vec![Value::Integer(inf), Value::Integer(sup)]);
     if state::get_str(top, "format") != Some(FORMAT)
         || state::get_int(top, "k") != Some(u64::from(k))
-        || state::get(top, "island") != Some(&island)
+        || state::get(top, key) != Some(&interval)
     {
         return Err(format!(
-            "{what}: format, k or island differ from the directory name"
+            "{what}: format, k or {key} differ from the directory name"
         ));
     }
-    let finite = Chain::new(k).map_err(|e| e.to_string())?.islands();
-    if !finite.iter().any(|i| i.inf == inf && i.sup == Some(sup)) {
-        return Err(format!(
-            "{what}: {inf} - {sup} is not a finite admissible island of G_{k}"
-        ));
+    if key == "island" {
+        let finite = Chain::new(k).map_err(|e| e.to_string())?.islands();
+        if !finite.iter().any(|i| i.inf == inf && i.sup == Some(sup)) {
+            return Err(format!(
+                "{what}: {inf} - {sup} is not a finite admissible island of G_{k}"
+            ));
+        }
+    } else {
+        bundle::check_range(k, inf, sup).map_err(|e| format!("{what}: {e}"))?;
     }
     if state::get(top, "claims") != Some(&Value::Array(vec![Value::String("hamiltonian".into())])) {
         return Err(format!("{what}: claims must be [\"hamiltonian\"]"));
     }
     if bundle.join("bands.txt").exists() {
-        return Err(format!("{what}: an island bundle has no bands.txt"));
+        return Err(format!("{what}: an {key} bundle has no bands.txt"));
     }
     let Some(Value::Array(items)) = state::get(top, "witnesses") else {
         unreachable!("checked by keys")
@@ -572,7 +580,9 @@ fn check_bundle(root: &Root, kind: &Kind, trees: &[Tree]) -> Result<Vec<Job>, St
     }
     let witnesses = match *kind {
         Kind::Value { k, n } => check_value_manifest(&document, k, n, &bases)?,
-        Kind::Island { k, inf, sup } => check_island_manifest(&document, k, inf, sup, &bases)?,
+        Kind::Island { .. } | Kind::Range { .. } => {
+            check_interval_manifest(&document, kind, &bases)?
+        }
     };
 
     let left = listing(&bases, Tree::Bases)?;
@@ -609,7 +619,7 @@ fn check_bundle(root: &Root, kind: &Kind, trees: &[Tree]) -> Result<Vec<Job>, St
         let sha8 = &id[..8];
         let prefix = match kind {
             Kind::Value { .. } => String::new(),
-            Kind::Island { .. } => format!("n{n}/"),
+            Kind::Island { .. } | Kind::Range { .. } => format!("n{n}/"),
         };
         expected.insert(format!("{prefix}{sha8}.<cycle>"));
         expected.insert(format!("{prefix}{sha8}.provenance.toml"));
@@ -699,6 +709,28 @@ fn verify(job: &Job, verifiers: &Verifiers, scratch: &Path, index: usize) -> Res
     Ok(())
 }
 
+/// Section 7.5: the island and range bundles of one `k` are pairwise
+/// disjoint.
+fn disjoint(kinds: &[Kind]) -> Result<(), String> {
+    let mut intervals: Vec<(u32, u128, u128, String)> = kinds
+        .iter()
+        .filter_map(|kind| match *kind {
+            Kind::Island { k, inf, sup } | Kind::Range { k, inf, sup } => {
+                Some((k, inf, sup, kind.name()))
+            }
+            Kind::Value { .. } => None,
+        })
+        .collect();
+    intervals.sort();
+    for pair in intervals.windows(2) {
+        let (a, b) = (&pair[0], &pair[1]);
+        if a.0 == b.0 && b.1 <= a.2 {
+            return Err(format!("{} and {} overlap", a.3, b.3));
+        }
+    }
+    Ok(())
+}
+
 /// Checks every bundle under `root`; returns whether all passed.
 pub fn check(root: &Root, jobs: usize) -> Result<bool, Failure> {
     let verifiers = Verifiers::locate(&repository(root))?;
@@ -730,6 +762,7 @@ pub fn check(root: &Root, jobs: usize) -> Result<bool, Failure> {
     if kinds.is_empty() {
         return Err(Failure(format!("no bundle under {}", root.path.display())));
     }
+    disjoint(&kinds).map_err(Failure)?;
     // The bases tree is the repository's; the plain tree is checked when
     // present, from a release or rebuilt by posum bundle plain.
     let trees: Vec<Tree> = if root.tree(Tree::Plain).is_dir() {

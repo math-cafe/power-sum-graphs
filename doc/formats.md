@@ -175,9 +175,10 @@ Bands files, manifests and provenance files are not compressed.
 
 ## 7. Bundles
 
-A bundle holds the witnesses of one result. There are two kinds: a **value
-bundle**, for one `(k, n)`, and an **island bundle**, for every `n` of one
-admissible island.
+A bundle holds the witnesses of one result. There are three kinds: a **value
+bundle**, for one `(k, n)`, an **island bundle**, for every `n` of one
+admissible island, and, since 1.1.0, a **range bundle**, for every `n` of an
+interval of consecutive admissible values (section 7.5).
 
 ### 7.1 Trees
 
@@ -232,6 +233,38 @@ contains `bands.txt`.
 same in both trees. Within one directory two witnesses MUST NOT share a
 `<sha8>`; should it happen, the writer MUST refuse rather than overwrite.
 
+### 7.5 Range bundles (since 1.1.0)
+
+Directory name `k<k>-r<inf>-<sup>`, for example `k3-r473-10000`. The letter
+`r` tells a range bundle from an island bundle by its name alone.
+
+The layout is that of an island bundle (section 7.3): one directory `n<n>/` per
+value, no `bands.txt`. The manifest is that of an island bundle with the key
+`range` in place of `island` (section 8.2):
+
+```toml
+format = "posum-bundle 1"
+k = 3
+range = [473, 10000]
+claims = ["hamiltonian"]
+witnesses = [
+  { n = 473, id = "<identity>", reference = true },
+  ...
+]
+```
+
+A range bundle claims Hamiltonicity for every `n` of its range, which MUST:
+
+1. satisfy `inf <= sup` and lie inside one admissible interval of `G_k`, an
+   island or the mainland (section 5), so that every `n` of it is admissible;
+2. not be exactly a finite island, which is the island bundle's case;
+3. be disjoint from every other range bundle and every island bundle of the
+   same `k`. It MAY overlap value bundles, which can carry other claims.
+
+As in an island bundle, every `n` of the range MUST appear, with exactly one
+reference witness. A reader of format 1.0 does not know the name `k*-r*` and
+MUST reject it rather than misread it.
+
 ---
 
 ## 8. Manifests
@@ -285,7 +318,8 @@ witnesses = [
 ]
 ```
 
-`island` replaces `n`. `witnesses` lists every witness of every value, one
+`island` replaces `n`. A range bundle manifest (section 7.5) is the same with
+the key `range` in place of `island`. `witnesses` lists every witness of every value, one
 inline table per line, in increasing order of `n` and then of identity. Every
 `n` of the island MUST appear at least once, and exactly one witness per `n`
 MUST carry `reference = true`. The files of each witness are, by rule,
@@ -305,7 +339,7 @@ serialised exactly as follows:
 6. inline tables with one space inside the braces and after each comma:
    `{ n = 9641, id = "a", reference = true }`;
 7. exactly one empty line before each table header (`[bands]`, `[[witness]]`),
-   none elsewhere; the island `witnesses` array opens with
+   none elsewhere; the island or range `witnesses` array opens with
    `witnesses = [` on its line, one inline table per line indented by two
    spaces and followed by a comma, and closes with `]` alone;
 8. no comment, no trailing space, final line feed.
@@ -386,7 +420,7 @@ is present (from a release, or rebuilt by `posum bundle plain`), `posum check`
 MUST:
 
 1. re-serialise the manifest and compare it byte for byte (section 8.3);
-2. check that the directory name agrees with `k`, `n` or `island`;
+2. check that the directory name agrees with `k`, `n`, `island` or `range`;
 3. for each witness, decompress the cycle file, have both verifiers accept it,
    and compare its identity with the manifest's `id` (for a bases file, the
    identity of the plain list it decodes to);
